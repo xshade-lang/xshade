@@ -1,0 +1,7 @@
+[package]
+name = "xshade"
+version = "0.1.0"
+authors = ["Andreas Fischer <home@deviru.de>"]
+
+[dependencies]
+nom = "^3.1"
