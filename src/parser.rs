@@ -55,8 +55,18 @@ named!(parse<&[u8], Vec<ItemKind>>,
     )
 );
 
-pub fn parse_str(program: &str) {
-    parse(program.as_bytes());
+pub fn parse_bytes(program: &[u8]) -> Result<Vec<ItemKind>, ()> {
+    match parse(program) {
+        IResult::Done(_, result) => Ok(result),
+        _ => Err(())
+    }
+}
+
+pub fn parse_str(program: &str) -> Result<Vec<ItemKind>, ()> {
+    match parse(program.as_bytes()) {
+        IResult::Done(_, result) => Ok(result),
+        _ => Err(())
+    }
 }
 
 #[cfg(test)]
@@ -67,8 +77,8 @@ mod tests {
     fn parse_sampler() {
         let sampler_code = "sampler albedo: Sampler2d;";
         assert_eq!(
-            parse(sampler_code.as_bytes()),
-            IResult::Done(&b""[..], vec![
+            parse_str(sampler_code),
+            Ok(vec![
                 ItemKind::Sampler(SamplerDefinition {
                     sampler_name: Identifier::from_str("albedo"),
                     sampler_type: Identifier::from_str("Sampler2d"),
@@ -86,8 +96,8 @@ mod tests {
             }
         "#;
         assert_eq!(
-            parse(sampler_code.as_bytes()),
-            IResult::Done(&b""[..], vec![
+            parse_str(sampler_code),
+            Ok(vec![
                 ItemKind::Struct(StructDefinition {
                     struct_name: Identifier::from_str("VS_IN"),
                     struct_member: vec![
