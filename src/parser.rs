@@ -1,6 +1,5 @@
-use ::std;
 use ::nom::*;
-use ::ast::*;
+use ::parse_tree::*;
 
 named!(parse_identifier<&[u8], &[u8]>,
     recognize!(
@@ -28,7 +27,6 @@ named!(parse_struct_member<&[u8], StructMemberDefinition>,
         name: ws!(parse_identifier) >>
         ws!(tag!(":")) >>
         type_name: ws!(parse_identifier) >>
-        ws!(tag!(",")) >>
         (StructMemberDefinition{ struct_member_name: Identifier::from_u8_slice(name), struct_member_type: Identifier::from_u8_slice(type_name) })
     )
 );
@@ -38,9 +36,32 @@ named!(parse_struct<&[u8], ItemKind>,
         ws!(tag!("struct")) >>
         name: ws!(parse_identifier) >>
         ws!(tag!("{")) >>
-        member: ws!(many0!(parse_struct_member)) >>
+        member: ws!(separated_list!(tag!(","), parse_struct_member)) >>
+        opt!(ws!(tag!(","))) >>
         ws!(tag!("}")) >>
         (ItemKind::Struct(StructDefinition{ struct_name: Identifier::from_u8_slice(name), struct_member: member }))
+    )
+);
+
+named!(parse_function_argument<&[u8], FunctionArgumentDeclaration>,
+    do_parse!(
+        name: ws!(parse_identifier) >>
+        ws!(tag!(":")) >>
+        type_name: ws!(parse_identifier) >>
+        (FunctionArgumentDeclaration{ argument_name: Identifier::from_u8_slice(name), argument_type: Identifier::from_u8_slice(type_name), })
+    )
+);
+
+named!(parse_function<&[u8], ItemKind>,
+    do_parse!(
+        ws!(tag!("fn")) >>
+        name: ws!(parse_identifier) >>
+        ws!(tag!("(")) >>
+        arguments: ws!(separated_list!(tag!(","), parse_function_argument)) >>
+        ws!(tag!(")")) >>
+        ws!(tag!("{")) >>
+        ws!(tag!("}")) >>
+        (ItemKind::Function(FunctionDeclaration{ function_name: Identifier::from_u8_slice(name), arguments: arguments, return_type: Identifier::from_str("void"), }))
     )
 );
 
@@ -49,7 +70,8 @@ named!(parse<&[u8], Vec<ItemKind>>,
         ws!(
             alt!(
                 parse_sampler |
-                parse_struct
+                parse_struct |
+                parse_function
             )
         )
     )
@@ -71,7 +93,47 @@ pub fn parse_str(program: &str) -> Result<Vec<ItemKind>, ()> {
 
 #[cfg(test)]
 mod tests {
+    #[allow(dead_code)]
     use super::*;
+
+    #[test]
+    fn parse_empty_function() {
+        let empty_function = "fn main() {}";
+        assert_eq!(
+            parse_str(empty_function),
+            Ok(vec![
+                ItemKind::Function(FunctionDeclaration{
+                    function_name: Identifier::from_str("main"),
+                    arguments: Vec::new(),
+                    return_type: Identifier::from_str("void"),
+                })
+            ])
+        );
+    }
+
+    #[test]
+    fn parse_empty_function_with_arguments() {
+        let empty_function = "fn main(a: B, c: D) {}";
+        assert_eq!(
+            parse_str(empty_function),
+            Ok(vec![
+                ItemKind::Function(FunctionDeclaration{
+                    function_name: Identifier::from_str("main"),
+                    arguments: vec![
+                        FunctionArgumentDeclaration {
+                            argument_name: Identifier::from_str("a"),
+                            argument_type: Identifier::from_str("B"),
+                        },
+                        FunctionArgumentDeclaration {
+                            argument_name: Identifier::from_str("c"),
+                            argument_type: Identifier::from_str("D"),
+                        }
+                    ],
+                    return_type: Identifier::from_str("void"),
+                })
+            ])
+        );
+    }
 
     #[test]
     fn parse_sampler() {

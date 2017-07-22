@@ -1,4 +1,4 @@
-use ::ast::*;
+use ::parse_tree::*;
 use ::string_builder::StringBuilder;
 
 fn render_struct(structure_definition: &StructDefinition, sb: &mut StringBuilder) {
@@ -32,6 +32,7 @@ pub fn render_glsl(ast: &Vec<ItemKind>) -> String {
 
 #[cfg(test)]
 mod tests {
+    #[allow(dead_code)]
     use super::*;
 
     #[test]
