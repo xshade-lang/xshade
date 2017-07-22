@@ -81,13 +81,17 @@ named!(parse_type_declaration<&[u8], Identifier>,
 named!(parse_function<&[u8], ItemKind>,
     do_parse!(
         ws!(tag!("fn")) >>
-        name: ws!(parse_identifier) >>
+        function_name: parse_symbol_declaration >>
         ws!(tag!("(")) >>
         arguments: ws!(separated_list!(tag!(","), parse_function_argument)) >>
         ws!(tag!(")")) >>
         ws!(tag!("{")) >>
         ws!(tag!("}")) >>
-        (ItemKind::Function(FunctionDeclaration{ function_name: Identifier::from_u8_slice(name), arguments: arguments, return_type: Identifier::from_str("void"), }))
+        (ItemKind::Function(FunctionDeclaration{
+            function_name: function_name,
+            arguments: arguments,
+            return_type: Identifier::from_str("void"),
+        }))
     )
 );
 
