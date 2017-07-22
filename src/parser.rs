@@ -14,41 +14,67 @@ named!(parse_identifier<&[u8], &[u8]>,
 named!(parse_sampler<&[u8], ItemKind>,
     do_parse!(
         ws!(tag!("sampler")) >>
-        name: ws!(parse_identifier) >>
+        sampler_name: parse_symbol_declaration >>
         ws!(tag!(":")) >>
-        type_name: ws!(parse_identifier) >>
+        sampler_type: parse_type_declaration >>
         ws!(tag!(";")) >>
-        (ItemKind::Sampler(SamplerDefinition{ sampler_name: Identifier::from_u8_slice(name), sampler_type: Identifier::from_u8_slice(type_name) }))
+        (ItemKind::Sampler(SamplerDefinition{
+            sampler_name: sampler_name,
+            sampler_type: sampler_type,
+        }))
     )
 );
 
 named!(parse_struct_member<&[u8], StructMemberDefinition>,
     do_parse!(
-        name: ws!(parse_identifier) >>
+        struct_member_name: parse_symbol_declaration >>
         ws!(tag!(":")) >>
-        type_name: ws!(parse_identifier) >>
-        (StructMemberDefinition{ struct_member_name: Identifier::from_u8_slice(name), struct_member_type: Identifier::from_u8_slice(type_name) })
+        struct_member_type: parse_type_declaration >>
+        (StructMemberDefinition{
+            struct_member_name: struct_member_name,
+            struct_member_type: struct_member_type,
+        })
     )
 );
 
 named!(parse_struct<&[u8], ItemKind>,
     do_parse!(
         ws!(tag!("struct")) >>
-        name: ws!(parse_identifier) >>
+        struct_name: parse_symbol_declaration >>
         ws!(tag!("{")) >>
         member: ws!(separated_list!(tag!(","), parse_struct_member)) >>
         opt!(ws!(tag!(","))) >>
         ws!(tag!("}")) >>
-        (ItemKind::Struct(StructDefinition{ struct_name: Identifier::from_u8_slice(name), struct_member: member }))
+        (ItemKind::Struct(StructDefinition{
+            struct_name: struct_name,
+            struct_member: member
+        }))
     )
 );
 
 named!(parse_function_argument<&[u8], FunctionArgumentDeclaration>,
     do_parse!(
-        name: ws!(parse_identifier) >>
+        argument_name: parse_symbol_declaration >>
         ws!(tag!(":")) >>
-        type_name: ws!(parse_identifier) >>
-        (FunctionArgumentDeclaration{ argument_name: Identifier::from_u8_slice(name), argument_type: Identifier::from_u8_slice(type_name), })
+        argument_type: parse_type_declaration >>
+        (FunctionArgumentDeclaration{
+            argument_name: argument_name,
+            argument_type: argument_type,
+        })
+    )
+);
+
+named!(parse_symbol_declaration<&[u8], Identifier>,
+    do_parse!(
+        name: ws!(parse_identifier) >>
+        (Identifier::from_u8_slice(name))
+    )
+);
+
+named!(parse_type_declaration<&[u8], Identifier>,
+    do_parse!(
+        name: ws!(parse_identifier) >>
+        (Identifier::from_u8_slice(name))
     )
 );
 
