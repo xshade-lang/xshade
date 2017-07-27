@@ -9,7 +9,6 @@ mod module;
 pub mod glsl;
 
 pub mod ast;
-pub mod parse_tree;
 pub mod parser;
 pub mod string_builder;
 

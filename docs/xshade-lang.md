@@ -11,6 +11,15 @@
 | f32  | 32 bit floating point number |
 | f64  | 64 bit floating point number |
 
+## operators
+| symbol | description | example |
+|--------|-------------|---------|
+| `=` | assignment | `let x = 0;` |
+| `+` | addition | `let y = x + 1;` |
+| `-` | subtraction | `let y = x - 1;` |
+| `*` | multiplication | `let y = x * 2;` |
+| `/` | division | `let y = x / 2;` |
+
 ## constant declarations
 ```xshade
 const myConstant: mat4x4;

@@ -1,4 +1,4 @@
-use ::parse_tree::*;
+use ::ast::*;
 use ::string_builder::StringBuilder;
 
 fn render_struct(structure_definition: &StructDefinition, sb: &mut StringBuilder) {

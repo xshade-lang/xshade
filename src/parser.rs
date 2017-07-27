@@ -1,5 +1,5 @@
 use ::nom::*;
-use ::parse_tree::*;
+use ::ast::*;
 
 named!(parse_identifier<&[u8], &[u8]>,
     recognize!(
