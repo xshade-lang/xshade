@@ -59,4 +59,3 @@ pub enum ItemKind {
     Sampler(SamplerDefinition),
     Function(FunctionDeclaration),
 }
-
