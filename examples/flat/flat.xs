@@ -11,7 +11,7 @@ struct VertexOutput {
 
 fn vertexShader(intput: VertexInput) -> VertexOutput {
     let output = VertexOutput {
-        position: mvp * vec4(input.position, 1.0)
+        position: mvp * vec4(input.position, 1.0),
     };
 
     return output;

@@ -7,9 +7,9 @@ fn compile_flat() {
 
     println!("");
 
-    println!("{:?}", ast);
+    println!("{:#?}", ast);
 
     println!("");
 
-    // panic!("");
+    panic!("");
 }

@@ -85,13 +85,37 @@ pub struct StructInstantiationExpression {
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum LiteralExpression {
-    Int(i32),
+    Int(String),
+    Float(String),
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum InfixExpression {
+    Plus(Box<ExpressionStatement>, Box<ExpressionStatement>),
+    Minus(Box<ExpressionStatement>, Box<ExpressionStatement>),
+    Divide(Box<ExpressionStatement>, Box<ExpressionStatement>),
+    Multiply(Box<ExpressionStatement>, Box<ExpressionStatement>),
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct VariableExpression {
+    pub variable_name: Identifier,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct AccessorExpression {
+    pub variable_name: Identifier,
+    pub accesse: Identifier,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ExpressionStatement {
+    Infix(InfixExpression),
     Literal(LiteralExpression),
+    Call(CallDeclaration),
     StructInstantiation(StructInstantiationExpression),
+    Accessor(AccessorExpression),
+    Variable(VariableExpression),
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -101,10 +125,22 @@ pub struct LocalDeclaration {
 }
 
 #[derive(Debug, Eq, PartialEq)]
+pub struct CallDeclaration {
+    pub function_name: Identifier,
+    pub arguments: Vec<ExpressionStatement>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
 pub enum BlockStatement {
     None,
     /// e.g. a `let` statement
     Local(LocalDeclaration),
+
+    /// return statement
+    Return(ExpressionStatement),
+
+    /// function call
+    Call(CallDeclaration),
 }
 
 #[derive(Debug, Eq, PartialEq)]

@@ -148,12 +148,31 @@ named!(parse_struct_instantiation<&[u8], ExpressionStatement>,
 
 fn parse_int_literal(parts: Vec<char>) -> ExpressionStatement {
     let string: String = parts.into_iter().collect();
-    let value: i32 = string.parse().unwrap();
-    ExpressionStatement::Literal(LiteralExpression::Int(value))
+    ExpressionStatement::Literal(LiteralExpression::Int(string))
 }
 
-// TODO more literals
-named!(parse_literal_expression<&[u8], ExpressionStatement>,
+fn parse_float_literal(before: Vec<char>, after: Vec<char>) -> ExpressionStatement {
+    let mut before: String = before.into_iter().collect();
+    let after: String = after.into_iter().collect();
+    before.push_str(".");
+    before.push_str(&after);
+    ExpressionStatement::Literal(LiteralExpression::Float(before))
+}
+
+named!(parse_float_literal_expression<&[u8], ExpressionStatement>,
+    do_parse!(
+        before: ws!(many0!(
+            one_of!("0123456789")
+        )) >>
+        ws!(tag!(".")) >>
+        after: ws!(many0!(
+            one_of!("0123456789")
+        )) >>
+        (parse_float_literal(before, after))
+    )
+);
+
+named!(parse_int_literal_expression<&[u8], ExpressionStatement>,
     do_parse!(
         numbers: ws!(many1!(
             one_of!("0123456789")
@@ -162,10 +181,98 @@ named!(parse_literal_expression<&[u8], ExpressionStatement>,
     )
 );
 
+// TODO more literals
+named!(parse_literal_expression<&[u8], ExpressionStatement>,
+    alt!(
+        parse_float_literal_expression |
+        parse_int_literal_expression
+    )
+);
+
+pub fn infix(operator: char, left: ExpressionStatement, right: ExpressionStatement) -> ExpressionStatement {
+    match operator {
+        '+' => ExpressionStatement::Infix(InfixExpression::Plus(Box::new(left), Box::new(right))),
+        '-' => ExpressionStatement::Infix(InfixExpression::Minus(Box::new(left), Box::new(right))),
+        '*' => ExpressionStatement::Infix(InfixExpression::Multiply(Box::new(left), Box::new(right))),
+        '/' => ExpressionStatement::Infix(InfixExpression::Divide(Box::new(left), Box::new(right))),
+        _ => panic!("")
+    }
+}
+
+named!(parse_infix_expression<&[u8], ExpressionStatement>,
+    do_parse!(
+        left: alt!(
+            parse_struct_instantiation |
+            parse_literal_expression | 
+            parse_call_expression |
+            parse_variable_expression
+        ) >>
+        operator: ws!(one_of!("+-*/")) >>
+        right: parse_expression >>
+        (infix(operator, left, right))
+    )
+);
+
+named!(parse_variable_expression<&[u8], ExpressionStatement>,
+    do_parse!(
+        variable_name: parse_symbol_declaration >>
+        (ExpressionStatement::Variable(VariableExpression{
+            variable_name: variable_name,
+        }))
+    )
+);
+
+named!(parse_call_statement<&[u8], BlockStatement>,
+    do_parse!(
+        call: parse_call >>
+        (BlockStatement::Call(call))
+    )
+);
+
+named!(parse_call_expression<&[u8], ExpressionStatement>,
+    do_parse!(
+        call: parse_call >>
+        (ExpressionStatement::Call(call))
+    )
+);
+
+named!(parse_call<&[u8], CallDeclaration>,
+    do_parse!(
+        function_name: parse_symbol_declaration >>
+        ws!(tag!("(")) >>
+        arguments: ws!(separated_list!(tag!(","), parse_expression)) >>
+        ws!(tag!(")")) >>
+        (CallDeclaration {
+            function_name: function_name,
+            arguments: arguments,
+        })
+    )
+);
+
+// TODO more accessor types like `a.b.c`
+named!(parse_accessor_expression<&[u8], ExpressionStatement>,
+    do_parse!(
+        variable_name: parse_symbol_declaration >>
+        ws!(tag!(".")) >>
+        accesse: parse_symbol_declaration >>
+        (ExpressionStatement::Accessor(AccessorExpression{
+            variable_name: variable_name,
+            accesse: accesse,
+        }))
+    )
+);
+
+// TODO precedence
+// TODO parentheses
 named!(parse_expression<&[u8], ExpressionStatement>,
     alt!(
+        parse_infix_expression |
         parse_struct_instantiation |
-        parse_literal_expression
+        parse_literal_expression |
+        parse_accessor_expression |
+        parse_call_expression |
+        parse_variable_expression |
+        parse_accessor_expression
     )
 );
 
@@ -185,11 +292,24 @@ named!(parse_local_declaration<&[u8], BlockStatement>,
     )
 );
 
+named!(parse_return_declaration<&[u8], BlockStatement>,
+    do_parse!(
+        ws!(tag!("return")) >>
+        expression: parse_expression >>
+        ws!(tag!(";")) >>
+        (BlockStatement::Return(
+            expression
+        ))
+    )
+);
+
 named!(parse_block_statements<&[u8], Vec<BlockStatement>>,
     many0!(
         ws!(
             alt!(
-                parse_local_declaration
+                parse_local_declaration |
+                parse_return_declaration |
+                parse_call_statement
             )
         )
     )
@@ -204,6 +324,7 @@ named!(parse_block_declaration<&[u8], BlockDeclaration>,
     )
 );
 
+// TODO make return type optional
 named!(parse_function<&[u8], ItemKind>,
     do_parse!(
         ws!(tag!("fn")) >>
@@ -211,6 +332,8 @@ named!(parse_function<&[u8], ItemKind>,
         ws!(tag!("(")) >>
         arguments: ws!(separated_list!(tag!(","), parse_function_argument)) >>
         ws!(tag!(")")) >>
+        ws!(tag!("->")) >>
+        return_type: parse_type_declaration >>
         ws!(tag!("{")) >>
         block: parse_block_declaration >>
         ws!(tag!("}")) >>
@@ -218,7 +341,7 @@ named!(parse_function<&[u8], ItemKind>,
             function_name: function_name,
             arguments: arguments,
             block: block,
-            return_type: Identifier::from_str("void"),
+            return_type: return_type,
         }))
     )
 );
@@ -260,7 +383,6 @@ pub fn parse_str(program: &str) -> Result<Vec<ItemKind>, CompileError> {
 
 #[cfg(test)]
 mod tests {
-    #[allow(dead_code)]
     use super::*;
 
     #[test]
@@ -271,7 +393,126 @@ mod tests {
             Ok(vec![
                 BlockStatement::Local(LocalDeclaration{
                     symbol_name: Identifier::from_str("x"),
-                    expression: ExpressionStatement::Literal(LiteralExpression::Int(42))
+                    expression: ExpressionStatement::Literal(LiteralExpression::Int("42".to_string()))
+                })
+            ])
+        );
+    }
+
+    #[test]
+    fn parse_float_literal_statement() {
+        let code = "let x = 42.0;";
+        assert_eq!(
+            parse_block(code),
+            Ok(vec![
+                BlockStatement::Local(LocalDeclaration{
+                    symbol_name: Identifier::from_str("x"),
+                    expression: ExpressionStatement::Literal(LiteralExpression::Float("42.0".to_string()))
+                })
+            ])
+        );
+    }
+
+    #[test]
+    fn parse_empty_call_statement() {
+        let code = "test();";
+        assert_eq!(
+            parse_block(code),
+            Ok(vec![
+                BlockStatement::Call(CallDeclaration{
+                    function_name: Identifier::from_str("test"),
+                    arguments: Vec::new(),
+                })
+            ])
+        );
+    }
+
+    #[test]
+    fn parse_call_statement() {
+        let code = "test(a, b);";
+        assert_eq!(
+            parse_block(code),
+            Ok(vec![
+                BlockStatement::Call(CallDeclaration{
+                    function_name: Identifier::from_str("test"),
+                    arguments: vec![
+                        ExpressionStatement::Variable(VariableExpression{
+                            variable_name: Identifier::from_str("a"),
+                        }),
+                        ExpressionStatement::Variable(VariableExpression{
+                            variable_name: Identifier::from_str("b"),
+                        })
+                    ],
+                })
+            ])
+        );
+    }
+
+    #[test]
+    fn parse_empty_call_expression() {
+        let code = "let x = test();";
+        assert_eq!(
+            parse_block(code),
+            Ok(vec![
+                BlockStatement::Local(LocalDeclaration{
+                    symbol_name: Identifier::from_str("x"),
+                    expression: ExpressionStatement::Call(CallDeclaration{
+                        function_name: Identifier::from_str("test"),
+                        arguments: Vec::new(),
+                    })
+                })
+            ])
+        );
+    }
+
+    #[test]
+    fn parse_infix_expression_statement() {
+        let code = "let x = a + b;";
+        assert_eq!(
+            parse_block(code),
+            Ok(vec![
+                BlockStatement::Local(LocalDeclaration{
+                    symbol_name: Identifier::from_str("x"),
+                    expression: ExpressionStatement::Infix(
+                        InfixExpression::Plus(
+                            Box::new(ExpressionStatement::Variable(VariableExpression{
+                                variable_name: Identifier::from_str("a"),
+                            })),
+                            Box::new(ExpressionStatement::Variable(VariableExpression{
+                                variable_name: Identifier::from_str("b"),
+                            })),
+                        )
+                    ),
+                })
+            ])
+        );
+    }
+
+    #[test]
+    fn parse_nested_infix_expression_statement() {
+        let code = "let x = a + b + c;";
+        assert_eq!(
+            parse_block(code),
+            Ok(vec![
+                BlockStatement::Local(LocalDeclaration{
+                    symbol_name: Identifier::from_str("x"),
+                    expression: ExpressionStatement::Infix(
+                        InfixExpression::Plus(
+                            Box::new(ExpressionStatement::Variable(VariableExpression{
+                                variable_name: Identifier::from_str("a"),
+                            })),
+                            Box::new(ExpressionStatement::Infix(
+                                InfixExpression::Plus(
+                                    Box::new(ExpressionStatement::Variable(VariableExpression{
+                                        variable_name: Identifier::from_str("b"),
+                                    })),
+                                    Box::new(ExpressionStatement::Variable(VariableExpression{
+                                        variable_name: Identifier::from_str("c"),
+                                    })),
+                                )
+                            )),
+                        )
+                    ),
                 })
             ])
         );
@@ -295,11 +536,11 @@ mod tests {
                         struct_field_initializer: vec![
                             StructFieldInitializerExpression{
                                 struct_field_name: Identifier::from_str("a"),
-                                initializer: Box::new(ExpressionStatement::Literal(LiteralExpression::Int(24))),
+                                initializer: Box::new(ExpressionStatement::Literal(LiteralExpression::Int("24".to_string()))),
                             },
                             StructFieldInitializerExpression{
                                 struct_field_name: Identifier::from_str("b"),
-                                initializer: Box::new(ExpressionStatement::Literal(LiteralExpression::Int(42))),
+                                initializer: Box::new(ExpressionStatement::Literal(LiteralExpression::Int("42".to_string()))),
                             },
                         ],
                     })
@@ -328,7 +569,7 @@ mod tests {
                         struct_field_initializer: vec![
                             StructFieldInitializerExpression{
                                 struct_field_name: Identifier::from_str("a"),
-                                initializer: Box::new(ExpressionStatement::Literal(LiteralExpression::Int(24))),
+                                initializer: Box::new(ExpressionStatement::Literal(LiteralExpression::Int("24".to_string()))),
                             },
                             StructFieldInitializerExpression{
                                 struct_field_name: Identifier::from_str("b"),
@@ -337,7 +578,7 @@ mod tests {
                                     struct_field_initializer: vec![
                                         StructFieldInitializerExpression{
                                             struct_field_name: Identifier::from_str("c"),
-                                            initializer: Box::new(ExpressionStatement::Literal(LiteralExpression::Int(42))),
+                                            initializer: Box::new(ExpressionStatement::Literal(LiteralExpression::Int("42".to_string()))),
                                         },
                                     ],
                                 })),
@@ -350,8 +591,21 @@ mod tests {
     }
 
     #[test]
+    fn parse_return_statement() {
+        let code = "return 0;";
+        assert_eq!(
+            parse_block(code),
+            Ok(vec![
+                BlockStatement::Return(
+                    ExpressionStatement::Literal(LiteralExpression::Int("0".to_string()))
+                )
+            ])
+        );
+    }
+
+    #[test]
     fn parse_empty_function() {
-        let code = "fn main() {}";
+        let code = "fn main() -> void {}";
         assert_eq!(
             parse_str(code),
             Ok(vec![
@@ -369,7 +623,7 @@ mod tests {
 
     #[test]
     fn parse_empty_function_with_arguments() {
-        let code = "fn main(a: B, c: D) {}";
+        let code = "fn main(a: B, c: D) -> void {}";
         assert_eq!(
             parse_str(code),
             Ok(vec![
