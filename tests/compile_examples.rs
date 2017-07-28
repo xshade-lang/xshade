@@ -11,5 +11,5 @@ fn compile_flat() {
 
     println!("");
 
-    panic!("");
+    // panic!("");
 }
