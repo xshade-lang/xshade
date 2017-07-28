@@ -15,10 +15,13 @@
 ### unary
 #### Syntax
 
-    let right  : U
-    let result : V /* V is either T or U */
+```rust
+let right  : U
+let result : V /* V is either T or U */
 
-    result = <op> right
+result = <op> right
+``` 
+
 | symbol | description | explanation | example | 
 |--------|-------------|-------------|---------|
 | `!` | logical negation | Negates an expression `x`, if it is implicitly convertible to a boolean value. | `let y = !x;` |
@@ -27,11 +30,13 @@ Remarks: None
 ### binary
 #### Syntax
 
-    let left   : T
-    let right  : U
-    let result : V /* V is either T or U */
+```rust
+let left   : T
+let right  : U
+let result : V /* V is either T or U */
 
-    result = left <op> right
+result = left <op> right
+```
 
 | symbol | description | explanation | example | 
 |--------|-------------|-------------|---------|
@@ -50,10 +55,12 @@ Remarks: None
 
 #### Syntax
 
-    let left   : T
-    let right  : U
+```rust 
+let left   : T
+let right  : U
 
-    left <op> right
+left <op> right
+```
 
 | symbol | description | example |
 |--------|-------------|---------|
@@ -66,12 +73,12 @@ Remarks: None
 If `U` is a higher-priorized type than `T`, the assignment is invalid due to truncation and possible data loss.
 E.g.:
 
-    ```rust
-    let left  : i32 = 2
-    let right : f32 = 1.445f
+```rust
+let left  : i32 = 2
+let right : f32 = 1.445f
 
-    left += right // Error: f32 will be truncated to i32. Data loss.
-    ```
+left += right // Error: f32 will be truncated to i32. Data loss.
+```
 
 ### comparison
 | symbol | description | example |
