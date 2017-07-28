@@ -2,15 +2,17 @@
 extern crate nom;
 extern crate indextree;
 
+mod api;
 mod symbol_table;
 mod type_definition;
 mod module;
+mod compile_error;
 
-pub mod glsl;
+mod glsl;
 
-pub mod ast;
-pub mod parser;
-pub mod string_builder;
+mod ast;
+mod parser;
+mod string_builder;
 
 pub use ::ast::*;
-pub use parser::parse_str;
+pub use api::parse_module;
