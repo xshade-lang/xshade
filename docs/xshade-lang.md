@@ -11,31 +11,37 @@
 | f32  | 32 bit floating point number |
 | f64  | 64 bit floating point number |
 
-## operators
-### unary
+----
+
+## Operators
+### Unary
 #### Syntax
 
 ```rust
-let right  : U
-let result : V /* V is either T or U */
+let right: U = <value>;
 
-result = <op> right
+let result_from_var: U  = <op>right;
+let result_from_expr: U = <op>(<expr: U>)
 ``` 
 
-| symbol | description | explanation | example | 
-|--------|-------------|-------------|---------|
-| `!` | logical negation | Negates an expression `x`, if it is implicitly convertible to a boolean value. | `let y = !x;` |
-| `-` | negation | Negates a numeric value of non-boolean primitive type. | `let y = -x;` |
-Remarks: None
-### binary
+| symbol | description | explanation | examples | 
+|--------|-------------|-------------|----------|
+| `!` | logical negation | Negates an expression `x`. if it is implicitly convertible to a boolean value. | `let x: bool = true;` <br /> `let y: bool = !x;` <br /> `let z: i32 = 127;` <br /> `let w: bool = !(z>128);` |
+| `-` | negation | Negates a numeric value of non-boolean primitive type. | `let x: i8 = -127;` <br /> `let y: i8 = (-x + 1);` |
+#### Remarks:
+The `logical negation` will only apply to boolean expressions or values. <br />
+The `negation` will only apply to non-boolean expressions or values. 
+
+----
+
+### Binary
 #### Syntax
 
 ```rust
-let left   : T
-let right  : U
-let result : V /* V is either T or U */
+let left: T = T{};
+let right: U = U{};
 
-result = left <op> right
+let result = (left <op> right); /* V is either T or U */
 ```
 
 | symbol | description | explanation | example | 
@@ -47,17 +53,20 @@ result = left <op> right
 | `/` | division | Divides a value of type `T` by a value of type `U`. |  `let y = x / 2;` |
 
 
-**Remarks**:  For each of the above operators the result type is evaluated according to the implicit type conversion rules. 
-
+#### Remarks:  
+For each of the above operators the result type is evaluated according to the implicit type conversion rules. 
 
 [TODO: ADD CHAPTER REF TO TYPE IMPLICIT CONVERSIONS]
-### binary-assign
+
+----
+
+### Binary-Assign
 
 #### Syntax
 
 ```rust 
-let left   : T
-let right  : U
+let left: T  = T{};
+let right: U = U{};
 
 left <op> right
 ```
@@ -74,13 +83,15 @@ If `U` is a higher-priorized type than `T`, the assignment is invalid due to tru
 E.g.:
 
 ```rust
-let left  : i32 = 2
-let right : f32 = 1.445f
+let left: i32  = 2;
+let right: f32 = 1.445f
 
 left += right // Error: f32 will be truncated to i32. Data loss.
 ```
 
-### comparison
+----
+
+### Comparison
 | symbol | description | example |
 |--------|-------------|---------|
 | `==` | equal | `let eq = x == y;` |
