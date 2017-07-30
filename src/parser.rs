@@ -201,12 +201,7 @@ pub fn infix(operator: char, left: ExpressionStatement, right: ExpressionStateme
 
 named!(parse_infix_expression<&[u8], ExpressionStatement>,
     do_parse!(
-        left: alt!(
-            parse_struct_instantiation |
-            parse_literal_expression | 
-            parse_call_expression |
-            parse_variable_expression
-        ) >>
+        left: parse_expression_no_left_recursion >>
         operator: ws!(one_of!("+-*/")) >>
         right: parse_expression >>
         (infix(operator, left, right))
@@ -259,6 +254,15 @@ named!(parse_accessor_expression<&[u8], ExpressionStatement>,
             variable_name: variable_name,
             accesse: accesse,
         }))
+    )
+);
+
+named!(parse_expression_no_left_recursion<&[u8], ExpressionStatement>,
+    alt!(
+        parse_struct_instantiation |
+        parse_literal_expression | 
+        parse_call_expression |
+        parse_variable_expression
     )
 );
 
@@ -641,6 +645,51 @@ mod tests {
                     ],
                     block: BlockDeclaration {
                         statements: Vec::new(),
+                    },
+                    return_type: Identifier::from_str("void"),
+                })
+            ])
+        );
+    }
+
+    #[test]
+    fn parse_function_with_expression() {
+        let code = "fn main(a: B) -> void { return a; }";
+        assert_eq!(
+            parse_str(code),
+            Ok(vec![
+                ItemKind::Function(FunctionDeclaration{
+                    function_name: Identifier::from_str("main"),
+                    arguments: vec![
+                        FunctionArgumentDeclaration {
+                            argument_name: Identifier::from_str("a"),
+                            argument_type: Identifier::from_str("B"),
+                        }
+                    ],
+                    block: BlockDeclaration {
+                        statements: vec![
+                            BlockStatement::Return(ExpressionStatement::Variable(VariableExpression{ variable_name: Identifier::from_str("a") }))
+                        ],
+                    },
+                    return_type: Identifier::from_str("void"),
+                })
+            ])
+        );
+    }
+
+    #[test]
+    fn parse_empty_function_with_expression() {
+        let code = "fn main() -> void { return 0.0; }";
+        assert_eq!(
+            parse_str(code),
+            Ok(vec![
+                ItemKind::Function(FunctionDeclaration{
+                    function_name: Identifier::from_str("main"),
+                    arguments: Vec::new(),
+                    block: BlockDeclaration {
+                        statements: vec![
+                            BlockStatement::Return(ExpressionStatement::Literal(LiteralExpression::Float("0.0".to_string())))
+                        ],
                     },
                     return_type: Identifier::from_str("void"),
                 })
