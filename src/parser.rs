@@ -350,6 +350,89 @@ named!(parse_function<&[u8], ItemKind>,
     )
 );
 
+named!(parse_primitive<&[u8], ItemKind>,
+    do_parse!(
+        ws!(tag!("primitive")) >>
+        ws!(tag!("type")) >>
+        type_name: parse_symbol_declaration >>
+        ws!(tag!(";")) >>
+        (ItemKind::Primitive(PrimitiveDeclaration{
+            type_name: type_name,
+        }))
+    )
+);
+
+named!(parse_operator_type<&[u8], Operator>,
+    do_parse!(
+        operator: ws!(one_of!("+-*/")) >>
+        (char_to_operator(operator))
+    )
+);
+
+pub fn char_to_operator(operator: char) -> Operator {
+    match operator {
+        '+' => Operator::Plus,
+        '-' => Operator::Minus,
+        '*' => Operator::Multiply,
+        '/' => Operator::Divide,
+        _ => panic!("")
+    }
+}
+
+named!(parse_operator<&[u8], ItemKind>,
+    do_parse!(
+        ws!(tag!("operator")) >>
+        operator: parse_operator_type >>
+        ws!(tag!("(")) >>
+        arguments: ws!(separated_list!(tag!(","), parse_function_argument)) >>
+        ws!(tag!(")")) >>
+        ws!(tag!("->")) >>
+        return_type: parse_type_declaration >>
+        ws!(tag!(";")) >>
+        (ItemKind::Operator(OperatorDeclaration{
+            operator: operator,
+            arguments: arguments,
+            return_type: return_type,
+        }))
+    )
+);
+
+named!(parse_implicit_cast<&[u8], ItemKind>,
+    do_parse!(
+        ws!(tag!("implicit")) >>
+        ws!(tag!("cast")) >>
+        ws!(tag!("(")) >>
+        arguments: ws!(separated_list!(tag!(","), parse_function_argument)) >>
+        ws!(tag!(")")) >>
+        ws!(tag!("->")) >>
+        return_type: parse_type_declaration >>
+        ws!(tag!(";")) >>
+        (ItemKind::Cast(CastDeclaration{
+            cast_type: CastType::Implicit,
+            arguments: arguments,
+            return_type: return_type,
+        }))
+    )
+);
+
+named!(parse_explicit_cast<&[u8], ItemKind>,
+    do_parse!(
+        ws!(tag!("explicit")) >>
+        ws!(tag!("cast")) >>
+        ws!(tag!("(")) >>
+        arguments: ws!(separated_list!(tag!(","), parse_function_argument)) >>
+        ws!(tag!(")")) >>
+        ws!(tag!("->")) >>
+        return_type: parse_type_declaration >>
+        ws!(tag!(";")) >>
+        (ItemKind::Cast(CastDeclaration{
+            cast_type: CastType::Explicit,
+            arguments: arguments,
+            return_type: return_type,
+        }))
+    )
+);
+
 named!(parse<&[u8], Vec<ItemKind>>,
     many0!(
         ws!(
@@ -358,7 +441,11 @@ named!(parse<&[u8], Vec<ItemKind>>,
                 parse_constant |
                 parse_struct |
                 parse_program |
-                parse_function
+                parse_function |
+                parse_primitive |
+                parse_operator |
+                parse_implicit_cast |
+                parse_explicit_cast
             )
         )
     )
@@ -388,6 +475,83 @@ pub fn parse_str(program: &str) -> Result<Vec<ItemKind>, CompileError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parse_primitive_statement() {
+        let code = "primitive type f32;";
+        assert_eq!(
+            parse_str(code),
+            Ok(vec![
+                ItemKind::Primitive(PrimitiveDeclaration{
+                    type_name: Identifier::from_str("f32")
+                })
+            ])
+        );
+    }
+
+    #[test]
+    fn parse_operator_statement() {
+        let code = "operator + (lhs: f64, rhs: f64) -> f64;";
+        assert_eq!(
+            parse_str(code),
+            Ok(vec![
+                ItemKind::Operator(OperatorDeclaration{
+                    operator: Operator::Plus,
+                    arguments: vec![
+                        FunctionArgumentDeclaration{
+                            argument_name: Identifier::from_str("lhs"),
+                            argument_type: Identifier::from_str("f64"),
+                        },
+                        FunctionArgumentDeclaration{
+                            argument_name: Identifier::from_str("rhs"),
+                            argument_type: Identifier::from_str("f64"),
+                        }
+                    ],
+                    return_type: Identifier::from_str("f64"),
+                })
+            ])
+        );
+    }
+
+    #[test]
+    fn parse_implicit_cast_statement() {
+        let code = "implicit cast (val: f32) -> f64;";
+        assert_eq!(
+            parse_str(code),
+            Ok(vec![
+                ItemKind::Cast(CastDeclaration{
+                    cast_type: CastType::Implicit,
+                    arguments: vec![
+                        FunctionArgumentDeclaration{
+                            argument_name: Identifier::from_str("val"),
+                            argument_type: Identifier::from_str("f32"),
+                        },
+                    ],
+                    return_type: Identifier::from_str("f64"),
+                })
+            ])
+        );
+    }
+
+    #[test]
+    fn parse_explicit_cast_statement() {
+        let code = "explicit cast (val: f32) -> f64;";
+        assert_eq!(
+            parse_str(code),
+            Ok(vec![
+                ItemKind::Cast(CastDeclaration{
+                    cast_type: CastType::Explicit,
+                    arguments: vec![
+                        FunctionArgumentDeclaration{
+                            argument_name: Identifier::from_str("val"),
+                            argument_type: Identifier::from_str("f32"),
+                        },
+                    ],
+                    return_type: Identifier::from_str("f64"),
+                })
+            ])
+        );
+    }
 
     #[test]
     fn parse_let_statement() {

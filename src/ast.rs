@@ -149,6 +149,39 @@ pub struct BlockDeclaration {
 }
 
 #[derive(Debug, Eq, PartialEq)]
+pub struct PrimitiveDeclaration {
+    pub type_name: Identifier,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum Operator {
+    Plus,
+    Minus,
+    Multiply,
+    Divide,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct OperatorDeclaration {
+    pub operator: Operator,
+    pub arguments: Vec<FunctionArgumentDeclaration>,
+    pub return_type: TypeIdentifier, 
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum CastType {
+    Implicit,
+    Explicit
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct CastDeclaration {
+    pub cast_type: CastType,
+    pub arguments: Vec<FunctionArgumentDeclaration>,
+    pub return_type: TypeIdentifier,
+}
+
+#[derive(Debug, Eq, PartialEq)]
 pub enum ItemKind {
     None,
     Struct(StructDefinition),
@@ -157,4 +190,7 @@ pub enum ItemKind {
     Constant(ConstantDefinition),
     Function(FunctionDeclaration),
     Block(BlockDeclaration),
+    Primitive(PrimitiveDeclaration),
+    Operator(OperatorDeclaration),
+    Cast(CastDeclaration),
 }
