@@ -1,10 +1,11 @@
 use ::std::collections::HashMap;
+use ::type_system::type_environment::TypeReference;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum SymbolState {
     Bound,
     Free,
-    Typed(usize),
+    Typed(TypeReference),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -20,11 +21,29 @@ impl Symbol {
             state: state,
         }
     }
+
+    pub fn resolve_type(&mut self, type_reference: TypeReference) {
+        match self.state {
+            SymbolState::Bound => self.state = SymbolState::Typed(type_reference),
+            SymbolState::Free => self.state = SymbolState::Typed(type_reference),
+            SymbolState::Typed(_) => panic!("Symbol already has a type!"),
+        }
+    }
 }
 
 #[derive(Debug)]
 struct Scope {
     symbols: HashMap<String, Symbol>,
+    types: HashMap<String, TypeReference>,
+}
+
+impl Scope {
+    pub fn new() -> Scope {
+        Scope {
+            symbols: HashMap::new(),
+            types: HashMap::new(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -35,14 +54,23 @@ pub struct SymbolTable {
 impl SymbolTable {
     pub fn new() -> SymbolTable {
         SymbolTable {
-            scopes: vec![Scope{ symbols: HashMap::new(), }],
+            scopes: vec![Scope::new()],
         }
     }
 
-    pub fn find_symbol(&mut self, name: &str) -> Option<&Symbol> {
+    pub fn add_type(&mut self, name: &str, type_reference: TypeReference) -> Result<(), ()> {
+        if self.scopes[0].types.contains_key(name) {
+            return Err(());
+        }
+
+        self.scopes[0].types.insert(name.to_string(), type_reference);
+        Ok(())
+    }
+
+    pub fn find_type(&self, name: &str) -> Option<&TypeReference> {
         for scope in &self.scopes {
-            if scope.symbols.contains_key(name) {
-                return scope.symbols.get(name);
+            if scope.types.contains_key(name) {
+                return scope.types.get(name);
             }
         }
 
@@ -58,10 +86,28 @@ impl SymbolTable {
         Ok(())
     }
 
+    pub fn find_symbol(&mut self, name: &str) -> Option<&Symbol> {
+        for scope in &self.scopes {
+            if scope.symbols.contains_key(name) {
+                return scope.symbols.get(name);
+            }
+        }
+
+        None
+    }
+
+    pub fn find_symbol_mut(&mut self, name: &str) -> Option<&mut Symbol> {
+        for scope in &mut self.scopes {
+            if scope.symbols.contains_key(name) {
+                return scope.symbols.get_mut(name);
+            }
+        }
+
+        None
+    }
+
     pub fn enter_scope(&mut self) {
-        self.scopes.insert(0, Scope {
-            symbols: HashMap::new(),
-        });
+        self.scopes.insert(0, Scope::new());
     }
 
     pub fn leave_scope(&mut self) {
@@ -113,5 +159,12 @@ mod tests {
     fn cannot_leave_root_scope() {
         let mut symbols = SymbolTable::new();
         symbols.leave_scope();
+    }
+
+    #[test]
+    fn add_type() {
+        let reference = TypeReference::new(0);
+        let mut symbols = SymbolTable::new();
+        symbols.add_type("f32", reference);
     }
 }

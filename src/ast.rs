@@ -1,4 +1,5 @@
-use std::str;
+use ::std::str;
+use ::type_system::type_environment::TypeReference;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Identifier {
@@ -20,6 +21,13 @@ impl Identifier {
 }
 
 type TypeIdentifier = Identifier;
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum Type {
+    Free,
+    Bound,
+    Typed(TypeReference),
+}
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct SamplerDefinition {
@@ -49,12 +57,14 @@ pub struct ProgramBindingDefinition {
 pub struct StructDefinition {
     pub struct_name: Identifier,
     pub struct_member: Vec<StructMemberDefinition>,
+    pub declaring_type: Type,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct StructMemberDefinition {
     pub struct_member_name: Identifier,
-    pub struct_member_type: TypeIdentifier,
+    pub struct_member_type_name: TypeIdentifier,
+    pub struct_member_type: Type,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -151,6 +161,7 @@ pub struct BlockDeclaration {
 #[derive(Debug, Eq, PartialEq)]
 pub struct PrimitiveDeclaration {
     pub type_name: Identifier,
+    pub declaring_type: Type,
 }
 
 #[derive(Debug, Eq, PartialEq)]

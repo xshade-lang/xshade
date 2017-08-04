@@ -77,4 +77,26 @@ impl Module {
         }
         functions
     }
+
+    pub fn find_primitives(&self) -> Vec<&PrimitiveDeclaration> {
+        let mut primitives = Vec::new();
+        for item in &self.ast {
+            match item {
+                &ItemKind::Primitive(ref p) => primitives.push(p),
+                _ => (),
+            }
+        }
+        primitives
+    }
+
+    pub fn find_primitives_mut(&mut self) -> Vec<&mut PrimitiveDeclaration> {
+        let mut primitives = Vec::new();
+        for item in &mut self.ast {
+            match item {
+                &mut ItemKind::Primitive(ref mut p) => primitives.push(p),
+                _ => (),
+            }
+        }
+        primitives
+    }
 }

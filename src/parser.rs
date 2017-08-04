@@ -71,10 +71,11 @@ named!(parse_struct_member<&[u8], StructMemberDefinition>,
     do_parse!(
         struct_member_name: parse_symbol_declaration >>
         ws!(tag!(":")) >>
-        struct_member_type: parse_type_declaration >>
+        struct_member_type_name: parse_type_declaration >>
         (StructMemberDefinition{
             struct_member_name: struct_member_name,
-            struct_member_type: struct_member_type,
+            struct_member_type_name: struct_member_type_name,
+            struct_member_type: Type::Free,
         })
     )
 );
@@ -89,7 +90,8 @@ named!(parse_struct<&[u8], ItemKind>,
         ws!(tag!("}")) >>
         (ItemKind::Struct(StructDefinition{
             struct_name: struct_name,
-            struct_member: member
+            struct_member: member,
+            declaring_type: Type::Free,
         }))
     )
 );
@@ -358,6 +360,7 @@ named!(parse_primitive<&[u8], ItemKind>,
         ws!(tag!(";")) >>
         (ItemKind::Primitive(PrimitiveDeclaration{
             type_name: type_name,
+            declaring_type: Type::Free,
         }))
     )
 );
@@ -483,7 +486,8 @@ mod tests {
             parse_str(code),
             Ok(vec![
                 ItemKind::Primitive(PrimitiveDeclaration{
-                    type_name: Identifier::from_str("f32")
+                    type_name: Identifier::from_str("f32"),
+                    declaring_type: Type::Free,
                 })
             ])
         );
@@ -905,13 +909,16 @@ mod tests {
                     struct_member: vec![
                         StructMemberDefinition {
                             struct_member_name: Identifier::from_str("position"),
-                            struct_member_type: Identifier::from_str("vec3"),
+                            struct_member_type_name: Identifier::from_str("vec3"),
+                            struct_member_type: Type::Free,
                         },
                         StructMemberDefinition {
                             struct_member_name: Identifier::from_str("uv"),
-                            struct_member_type: Identifier::from_str("vec2"),
+                            struct_member_type_name: Identifier::from_str("vec2"),
+                            struct_member_type: Type::Free,
                         },
                     ],
+                    declaring_type: Type::Free,
                 })
             ])
         );

@@ -7,7 +7,7 @@ fn render_struct(structure_definition: &StructDefinition, sb: &mut StringBuilder
     sb.append(" {\n");
     for member in &structure_definition.struct_member {
         sb.append("    ");
-        sb.append(&member.struct_member_type.name);
+        sb.append(&member.struct_member_type_name.name);
         sb.append(" ");
         sb.append(&member.struct_member_name.name);
         sb.append(";\n");
@@ -42,13 +42,16 @@ mod tests {
             struct_member: vec![
                 StructMemberDefinition {
                     struct_member_name: Identifier::from_str("position"),
-                    struct_member_type: Identifier::from_str("vec3"),
+                    struct_member_type_name: Identifier::from_str("vec3"),
+                    struct_member_type: Type::Free,
                 },
                 StructMemberDefinition {
                     struct_member_name: Identifier::from_str("uv"),
-                    struct_member_type: Identifier::from_str("vec2"),
+                    struct_member_type_name: Identifier::from_str("vec2"),
+                    struct_member_type: Type::Free,
                 },
             ],
+            declaring_type: Type::Free,
         })];
 
         assert_eq!("#version 330\nstruct VS_IN {\n    vec3 position;\n    vec2 uv;\n}\n", render_glsl(&ast));
