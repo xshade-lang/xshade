@@ -1,4 +1,5 @@
 use ::std::collections::HashMap;
+use ::type_system::error::{ TypeError, TypeCheckResult };
 use ::type_system::type_environment::TypeReference;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -58,9 +59,9 @@ impl SymbolTable {
         }
     }
 
-    pub fn add_type(&mut self, name: &str, type_reference: TypeReference) -> Result<(), ()> {
+    pub fn add_type(&mut self, name: &str, type_reference: TypeReference) -> TypeCheckResult<()> {
         if self.scopes[0].types.contains_key(name) {
-            return Err(());
+            return Err(TypeError::SymbolNameAlreadyUsed(name.to_string()));
         }
 
         self.scopes[0].types.insert(name.to_string(), type_reference);
@@ -77,9 +78,9 @@ impl SymbolTable {
         None
     }
 
-    pub fn add_symbol(&mut self, name: &str) -> Result<(), ()> {
+    pub fn add_symbol(&mut self, name: &str) -> TypeCheckResult<()> {
         if self.scopes[0].symbols.contains_key(name) {
-            return Err(());
+            return Err(TypeError::SymbolNameAlreadyUsed(name.to_string()));
         }
 
         self.scopes[0].symbols.insert(name.to_string(), Symbol::new(name, SymbolState::Free));

@@ -1,4 +1,5 @@
 use ::std::collections::HashMap;
+use ::type_system::error::{ TypeError, TypeCheckResult };
 use ::type_system::type_definition::TypeDefinition;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -32,13 +33,13 @@ impl TypeEnvironment {
         }
     }
 
-    pub fn create_type(&mut self, name: &str) -> TypeReference {
+    pub fn create_type(&mut self, name: &str) -> TypeCheckResult<TypeReference> {
         let id = self.types.len();
         let type_definition = TypeDefinition::new(id, name);
         self.types.push(type_definition);
         let type_ref = TypeReference::new(id);
         self.names_lookup.insert(name.to_string(), type_ref);
-        type_ref
+        Ok(type_ref)
     }
 
     pub fn find_type(&self, reference: TypeReference) -> Option<&TypeDefinition> {
@@ -81,7 +82,7 @@ mod tests {
     fn add_type() {
         let mut type_environment = TypeEnvironment::new();
 
-        let reference = type_environment.create_type("f32");
+        let reference = type_environment.create_type("f32").unwrap();
 
         assert_eq!(type_environment.find_type(reference), Some(&TypeDefinition::new(reference.get_id(), "f32")));
     }
