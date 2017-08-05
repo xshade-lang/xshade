@@ -122,8 +122,6 @@ mod tests {
         let mut type_environment = TypeEnvironment::new();
         let mut symbol_table = SymbolTable::new();
 
-        type_check(&mut type_environment, &mut symbol_table, &mut module).unwrap();
-
         assert!(type_check(&mut type_environment, &mut symbol_table, &mut module).is_ok());
     }
 }
