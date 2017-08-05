@@ -17,11 +17,13 @@ named!(parse_constant<&[u8], ItemKind>,
         ws!(tag!("const")) >>
         constant_name: parse_symbol_declaration >>
         ws!(tag!(":")) >>
-        constant_type: parse_type_declaration >>
+        constant_type_name: parse_type_declaration >>
         ws!(tag!(";")) >>
         (ItemKind::Constant(ConstantDefinition{
             constant_name: constant_name,
-            constant_type: constant_type,
+            constant_variant: ConstantVariant::Constant,
+            constant_type_name: constant_type_name,
+            constant_type: Type::Free,
         }))
     )
 );
@@ -31,11 +33,13 @@ named!(parse_sampler<&[u8], ItemKind>,
         ws!(tag!("sampler")) >>
         sampler_name: parse_symbol_declaration >>
         ws!(tag!(":")) >>
-        sampler_type: parse_type_declaration >>
+        sampler_type_name: parse_type_declaration >>
         ws!(tag!(";")) >>
-        (ItemKind::Sampler(SamplerDefinition{
-            sampler_name: sampler_name,
-            sampler_type: sampler_type,
+        (ItemKind::Constant(ConstantDefinition{
+            constant_name: sampler_name,
+            constant_variant: ConstantVariant::Sampler,
+            constant_type_name: sampler_type_name,
+            constant_type: Type::Free,
         }))
     )
 );
@@ -871,9 +875,11 @@ mod tests {
         assert_eq!(
             parse_str(code),
             Ok(vec![
-                ItemKind::Sampler(SamplerDefinition {
-                    sampler_name: Identifier::from_str("albedo"),
-                    sampler_type: Identifier::from_str("Sampler2d"),
+                ItemKind::Constant(ConstantDefinition {
+                    constant_name: Identifier::from_str("albedo"),
+                    constant_variant: ConstantVariant::Sampler,
+                    constant_type_name: Identifier::from_str("Sampler2d"),
+                    constant_type: Type::Free,
                 })
             ])
         );
@@ -887,7 +893,9 @@ mod tests {
             Ok(vec![
                 ItemKind::Constant(ConstantDefinition {
                     constant_name: Identifier::from_str("mvp"),
-                    constant_type: Identifier::from_str("mat4x4"),
+                    constant_variant: ConstantVariant::Constant,
+                    constant_type_name: Identifier::from_str("mat4x4"),
+                    constant_type: Type::Free,
                 })
             ])
         );

@@ -100,25 +100,25 @@ impl Module {
         primitives
     }
 
-    pub fn find_sampler(&self) -> Vec<&SamplerDefinition> {
-        let mut sampler = Vec::new();
+    pub fn find_constants(&self) -> Vec<&ConstantDefinition> {
+        let mut constants = Vec::new();
         for item in &self.ast {
             match item {
-                &ItemKind::Sampler(ref s) => sampler.push(s),
+                &ItemKind::Constant(ref c) => constants.push(c),
                 _ => (),
             }
         }
-        sampler
+        constants
     }
 
-    pub fn find_sampler_mut(&mut self) -> Vec<&mut SamplerDefinition> {
-        let mut sampler = Vec::new();
+    pub fn find_constants_mut(&mut self) -> Vec<&mut ConstantDefinition> {
+        let mut constants = Vec::new();
         for item in &mut self.ast {
             match item {
-                &mut ItemKind::Sampler(ref mut s) => sampler.push(s),
+                &mut ItemKind::Constant(ref mut c) => constants.push(c),
                 _ => (),
             }
         }
-        sampler
+        constants
     }
 }

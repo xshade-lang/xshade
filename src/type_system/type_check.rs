@@ -9,7 +9,7 @@ pub fn type_check(type_environment: &mut TypeEnvironment, symbol_table: &mut Sym
     symbol_table.enter_scope();
     try!(check_primitives(type_environment, symbol_table, &mut module.find_primitives_mut()));
     try!(check_structs(type_environment, symbol_table, &mut module.find_structs_mut()));
-    try!(check_samler(type_environment, symbol_table, &mut module.find_sampler_mut()));
+    try!(check_constant(type_environment, symbol_table, &mut module.find_constants_mut()));
     symbol_table.leave_scope();
     Ok(())
 }
@@ -48,15 +48,15 @@ fn check_structs(type_environment: &mut TypeEnvironment, symbol_table: &mut Symb
     Ok(())
 }
 
-fn check_samler(type_environment: &mut TypeEnvironment, symbol_table: &mut SymbolTable, sampler: &mut Vec<&mut SamplerDefinition>) -> TypeCheckResult<()> {
-    for s in sampler.iter_mut() {
-        try!(symbol_table.add_symbol(&s.sampler_name.name));
-        match symbol_table.find_type(&s.sampler_type.name) {
+fn check_constant(type_environment: &mut TypeEnvironment, symbol_table: &mut SymbolTable, constants: &mut Vec<&mut ConstantDefinition>) -> TypeCheckResult<()> {
+    for s in constants.iter_mut() {
+        try!(symbol_table.add_symbol(&s.constant_name.name));
+        match symbol_table.find_type(&s.constant_type_name.name) {
             Some(type_ref) => {
-
+                s.constant_type = Type::Typed(type_ref.clone());
             },
             None => {
-                return Err(TypeError::TypeNotFound(s.sampler_type.name.clone()));
+                return Err(TypeError::TypeNotFound(s.constant_type_name.name.clone()));
             }
         }
     }
@@ -142,9 +142,9 @@ mod tests {
     }
 
     #[test]
-    fn test_check_sampler_unknown() {
+    fn test_check_constant_unknown() {
         let code = r#"
-            sampler Albedo: Sampler2d;
+            const test: f32;
         "#;
 
         let mut module = parse_module(code).unwrap();
@@ -155,10 +155,10 @@ mod tests {
     }
 
     #[test]
-    fn test_check_sampler() {
+    fn test_check_constant() {
         let code = r#"
-            primitive type Sampler2d;
-            sampler Albedo: Sampler2d;
+            primitive type f32;
+            const test: f32;
         "#;
 
         let mut module = parse_module(code).unwrap();

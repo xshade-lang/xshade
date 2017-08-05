@@ -30,15 +30,17 @@ pub enum Type {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct SamplerDefinition {
-    pub sampler_name: Identifier,
-    pub sampler_type: TypeIdentifier,
+pub enum ConstantVariant {
+    Constant,
+    Sampler,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ConstantDefinition {
     pub constant_name: Identifier,
-    pub constant_type: TypeIdentifier,
+    pub constant_variant: ConstantVariant,
+    pub constant_type_name: TypeIdentifier,
+    pub constant_type: Type,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -197,7 +199,6 @@ pub enum ItemKind {
     None,
     Struct(StructDefinition),
     Program(ProgramDefinition),
-    Sampler(SamplerDefinition),
     Constant(ConstantDefinition),
     Function(FunctionDeclaration),
     Block(BlockDeclaration),
