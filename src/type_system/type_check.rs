@@ -7,14 +7,15 @@ use ::type_system::type_environment::TypeEnvironment;
 
 pub fn type_check(type_environment: &mut TypeEnvironment, symbol_table: &mut SymbolTable, module: &mut Module) -> TypeCheckResult<()> {
     symbol_table.enter_scope();
-    try!(check_primitives(type_environment, symbol_table, module.find_primitives_mut()));
+    try!(check_primitives(type_environment, symbol_table, &mut module.find_primitives_mut()));
     try!(check_structs(type_environment, symbol_table, &mut module.find_structs_mut()));
+    try!(check_samler(type_environment, symbol_table, &mut module.find_sampler_mut()));
     symbol_table.leave_scope();
     Ok(())
 }
 
-fn check_primitives(type_environment: &mut TypeEnvironment, symbol_table: &mut SymbolTable, primitives: Vec<&mut PrimitiveDeclaration>) -> TypeCheckResult<()> {
-    for p in primitives {
+fn check_primitives(type_environment: &mut TypeEnvironment, symbol_table: &mut SymbolTable, primitives: &mut Vec<&mut PrimitiveDeclaration>) -> TypeCheckResult<()> {
+    for p in primitives.iter_mut() {
         let reference = try!(type_environment.create_type(&p.type_name.name));
         try!(symbol_table.add_type(&p.type_name.name, reference));
         p.declaring_type = Type::Typed(reference);
@@ -44,6 +45,21 @@ fn check_structs(type_environment: &mut TypeEnvironment, symbol_table: &mut Symb
         }
     }
     
+    Ok(())
+}
+
+fn check_samler(type_environment: &mut TypeEnvironment, symbol_table: &mut SymbolTable, sampler: &mut Vec<&mut SamplerDefinition>) -> TypeCheckResult<()> {
+    for s in sampler.iter_mut() {
+        try!(symbol_table.add_symbol(&s.sampler_name.name));
+        match symbol_table.find_type(&s.sampler_type.name) {
+            Some(type_ref) => {
+
+            },
+            None => {
+                return Err(TypeError::TypeNotFound(s.sampler_type.name.clone()));
+            }
+        }
+    }
     Ok(())
 }
 
@@ -86,7 +102,7 @@ mod tests {
         let mut type_environment = TypeEnvironment::new();
         let mut symbol_table = SymbolTable::new();
 
-        type_check(&mut type_environment, &mut symbol_table, &mut module).unwrap();
+        assert!(type_check(&mut type_environment, &mut symbol_table, &mut module).is_ok());
     }
 
     #[test]
@@ -116,6 +132,33 @@ mod tests {
             }
             
             primitive type f32;
+        "#;
+
+        let mut module = parse_module(code).unwrap();
+        let mut type_environment = TypeEnvironment::new();
+        let mut symbol_table = SymbolTable::new();
+
+        assert!(type_check(&mut type_environment, &mut symbol_table, &mut module).is_ok());
+    }
+
+    #[test]
+    fn test_check_sampler_unknown() {
+        let code = r#"
+            sampler Albedo: Sampler2d;
+        "#;
+
+        let mut module = parse_module(code).unwrap();
+        let mut type_environment = TypeEnvironment::new();
+        let mut symbol_table = SymbolTable::new();
+
+        assert!(type_check(&mut type_environment, &mut symbol_table, &mut module).is_err());
+    }
+
+    #[test]
+    fn test_check_sampler() {
+        let code = r#"
+            primitive type Sampler2d;
+            sampler Albedo: Sampler2d;
         "#;
 
         let mut module = parse_module(code).unwrap();

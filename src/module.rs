@@ -99,4 +99,26 @@ impl Module {
         }
         primitives
     }
+
+    pub fn find_sampler(&self) -> Vec<&SamplerDefinition> {
+        let mut sampler = Vec::new();
+        for item in &self.ast {
+            match item {
+                &ItemKind::Sampler(ref s) => sampler.push(s),
+                _ => (),
+            }
+        }
+        sampler
+    }
+
+    pub fn find_sampler_mut(&mut self) -> Vec<&mut SamplerDefinition> {
+        let mut sampler = Vec::new();
+        for item in &mut self.ast {
+            match item {
+                &mut ItemKind::Sampler(ref mut s) => sampler.push(s),
+                _ => (),
+            }
+        }
+        sampler
+    }
 }
