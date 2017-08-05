@@ -3,13 +3,19 @@ use ::ast::*;
 #[derive(Debug)]
 pub struct Module {
     ast: Vec<ItemKind>,
+    is_core_module: bool,
 }
 
 impl Module {
-    pub fn from_ast(ast: Vec<ItemKind>) -> Module {
+    pub fn from_ast(ast: Vec<ItemKind>, is_core_module: bool) -> Module {
         Module {
             ast: ast,
+            is_core_module: is_core_module,
         }
+    }
+
+    pub fn is_core(&self) -> bool {
+        self.is_core_module
     }
 
     pub fn find_programs(&self) -> Vec<&ProgramDefinition> {

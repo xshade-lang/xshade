@@ -7,6 +7,7 @@ pub type TypeCheckResult<T> = Result<T, TypeError>;
 pub enum TypeError {
     TypeNotFound(String),
     SymbolNameAlreadyUsed(String),
+    SyntaxOnlyValidInCoreModule,
 }
 
 impl fmt::Display for TypeError {
@@ -18,6 +19,9 @@ impl fmt::Display for TypeError {
             TypeError::SymbolNameAlreadyUsed(ref symbol_name) => {
                 write!(f, "Symbol \"{}\" already declared.", symbol_name)
             },
+            TypeError::SyntaxOnlyValidInCoreModule => {
+                write!(f, "Syntax only valid in core module.")
+            }
         }
     }
 }
@@ -27,6 +31,7 @@ impl Error for TypeError {
         match *self {
             TypeError::TypeNotFound(_) => "Unknown type.",
             TypeError::SymbolNameAlreadyUsed(_) => "Symbol name already declared.",
+            TypeError::SyntaxOnlyValidInCoreModule => "Syntax only valid in core module.",
         }
     }
 }

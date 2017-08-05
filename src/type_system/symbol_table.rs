@@ -59,6 +59,16 @@ impl SymbolTable {
         }
     }
 
+    pub fn add_global_type(&mut self, name: &str, type_reference: TypeReference) -> TypeCheckResult<()> {
+        let root = self.scopes.len() - 1;
+        if self.scopes[root].types.contains_key(name) {
+            return Err(TypeError::SymbolNameAlreadyUsed(name.to_string()));
+        }
+
+        self.scopes[root].types.insert(name.to_string(), type_reference);
+        Ok(())
+    }
+
     pub fn add_type(&mut self, name: &str, type_reference: TypeReference) -> TypeCheckResult<()> {
         if self.scopes[0].types.contains_key(name) {
             return Err(TypeError::SymbolNameAlreadyUsed(name.to_string()));
