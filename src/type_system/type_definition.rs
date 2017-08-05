@@ -20,8 +20,8 @@ mod tests {
 
     #[test]
     fn same_types_are_equal() {
-        let mut a = TypeDefinition::new(0, "f32");
-        let mut b = TypeDefinition::new(0, "f32");
+        let a = TypeDefinition::new(0, "f32");
+        let b = TypeDefinition::new(0, "f32");
 
         assert_eq!(a, b);
     }

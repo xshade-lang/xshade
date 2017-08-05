@@ -1,4 +1,3 @@
-use ::std::error::Error;
 use ::ast::*;
 use ::module::Module;
 use ::type_system::error::{ TypeError, TypeCheckResult };
@@ -28,7 +27,7 @@ fn check_structs(type_environment: &mut TypeEnvironment, symbol_table: &mut Symb
     for s in structs.iter_mut() {
         try!(symbol_table.add_symbol(&s.struct_name.name));
         let reference = try!(type_environment.create_type(&s.struct_name.name));
-        symbol_table.add_type(&s.struct_name.name, reference);
+        try!(symbol_table.add_type(&s.struct_name.name, reference));
         s.declaring_type = Type::Typed(reference);
     }
 
@@ -74,18 +73,7 @@ mod tests {
             primitive type f32;
         "#;
 
-        let mut module = parse_module(code).unwrap();
-        let mut type_environment = TypeEnvironment::new();
-        let mut symbol_table = SymbolTable::new();
-
-        type_check(&mut type_environment, &mut symbol_table, &mut module).unwrap();
-
-        let type_ref = type_environment.find_reference_by_name("f32").unwrap();
-
-        assert_eq!(module.find_primitives(), vec![&PrimitiveDeclaration{
-            type_name: Identifier::from_str("f32"),
-            declaring_type: Type::Typed(type_ref),
-        }]);
+        assert!(parse_module(code).is_ok());
     }
 
     #[test]
@@ -98,11 +86,7 @@ mod tests {
             }
         "#;
 
-        let mut module = parse_module(code).unwrap();
-        let mut type_environment = TypeEnvironment::new();
-        let mut symbol_table = SymbolTable::new();
-
-        assert!(type_check(&mut type_environment, &mut symbol_table, &mut module).is_ok());
+        assert!(parse_module(code).is_ok());
     }
 
     #[test]
@@ -113,11 +97,7 @@ mod tests {
             }
         "#;
 
-        let mut module = parse_module(code).unwrap();
-        let mut type_environment = TypeEnvironment::new();
-        let mut symbol_table = SymbolTable::new();
-
-        assert!(type_check(&mut type_environment, &mut symbol_table, &mut module).is_err());
+        assert!(parse_module(code).is_err());
     }
 
     #[test]
@@ -134,11 +114,7 @@ mod tests {
             primitive type f32;
         "#;
 
-        let mut module = parse_module(code).unwrap();
-        let mut type_environment = TypeEnvironment::new();
-        let mut symbol_table = SymbolTable::new();
-
-        assert!(type_check(&mut type_environment, &mut symbol_table, &mut module).is_ok());
+        assert!(parse_module(code).is_ok());
     }
 
     #[test]
@@ -147,11 +123,7 @@ mod tests {
             const test: f32;
         "#;
 
-        let mut module = parse_module(code).unwrap();
-        let mut type_environment = TypeEnvironment::new();
-        let mut symbol_table = SymbolTable::new();
-
-        assert!(type_check(&mut type_environment, &mut symbol_table, &mut module).is_err());
+        assert!(parse_module(code).is_err());
     }
 
     #[test]
@@ -161,10 +133,6 @@ mod tests {
             const test: f32;
         "#;
 
-        let mut module = parse_module(code).unwrap();
-        let mut type_environment = TypeEnvironment::new();
-        let mut symbol_table = SymbolTable::new();
-
-        assert!(type_check(&mut type_environment, &mut symbol_table, &mut module).is_ok());
+        assert!(parse_module(code).is_ok());
     }
 }

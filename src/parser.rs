@@ -458,13 +458,6 @@ named!(parse<&[u8], Vec<ItemKind>>,
     )
 );
 
-pub fn parse_bytes(program: &[u8]) -> Result<Vec<ItemKind>, CompileError> {
-    match parse(program) {
-        IResult::Done(_, result) => Ok(result),
-        _ => Err(CompileError::new())
-    }
-}
-
 pub fn parse_block(program: &str) -> Result<Vec<BlockStatement>, CompileError> {
     match parse_block_statements(program.as_bytes()) {
         IResult::Done(_, result) => Ok(result),

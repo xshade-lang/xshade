@@ -25,8 +25,8 @@ impl fmt::Display for TypeError {
 impl Error for TypeError {
     fn description(&self) -> &str {
         match *self {
-            TypeError::TypeNotFound(ref e) => "Unknown type.",
-            TypeError::SymbolNameAlreadyUsed(ref e) => "Symbol name already declared.",
+            TypeError::TypeNotFound(_) => "Unknown type.",
+            TypeError::SymbolNameAlreadyUsed(_) => "Symbol name already declared.",
         }
     }
 }

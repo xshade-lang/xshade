@@ -124,7 +124,7 @@ mod tests {
     fn add_and_find_symbol() {
         let mut symbols = SymbolTable::new();
 
-        symbols.add_symbol("test_symbol");
+        symbols.add_symbol("test_symbol").unwrap();
 
         assert_eq!(symbols.find_symbol("test_symbol"), Some(&Symbol::new("test_symbol", SymbolState::Free)));
     }
@@ -140,7 +140,7 @@ mod tests {
     #[test]
     fn add_enter_then_find_symbol() {
         let mut symbols = SymbolTable::new();
-        symbols.add_symbol("test_symbol");
+        symbols.add_symbol("test_symbol").unwrap();
         symbols.enter_scope();
 
         assert_eq!(symbols.find_symbol("test_symbol"), Some(&Symbol::new("test_symbol", SymbolState::Free)));
@@ -150,7 +150,7 @@ mod tests {
     fn enter_add_leave_then_dont_find_symbol() {
         let mut symbols = SymbolTable::new();
         symbols.enter_scope();
-        symbols.add_symbol("test_symbol");
+        symbols.add_symbol("test_symbol").unwrap();
         symbols.leave_scope();
 
         assert_eq!(symbols.find_symbol("test_symbol"), None);
