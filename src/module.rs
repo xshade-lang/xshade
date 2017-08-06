@@ -127,4 +127,26 @@ impl Module {
         }
         constants
     }
+
+    pub fn find_casts(&self) -> Vec<&CastDeclaration> {
+        let mut casts = Vec::new();
+        for item in &self.ast {
+            match item {
+                &ItemKind::Cast(ref c) => casts.push(c),
+                _ => (),
+            }
+        }
+        casts
+    }
+
+    pub fn find_casts_mut(&mut self) -> Vec<&mut CastDeclaration> {
+        let mut casts = Vec::new();
+        for item in &mut self.ast {
+            match item {
+                &mut ItemKind::Cast(ref mut c) => casts.push(c),
+                _ => (),
+            }
+        }
+        casts
+    }
 }

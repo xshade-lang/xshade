@@ -51,6 +51,15 @@ impl TypeEnvironment {
         Some(&self.types[id])
     }
 
+    pub fn find_type_mut(&mut self, reference: TypeReference) -> Option<&mut TypeDefinition> {
+        let id = reference.get_id();
+        if id >= self.types.len() {
+            return None;
+        }
+
+        Some(&mut self.types[id])
+    }
+
     pub fn find_reference_by_name(&self, name: &str) -> Option<TypeReference> {
         if !self.names_lookup.contains_key(name) {
             return None;

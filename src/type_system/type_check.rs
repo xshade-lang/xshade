@@ -8,6 +8,7 @@ pub fn type_check(type_environment: &mut TypeEnvironment, symbol_table: &mut Sym
     symbol_table.enter_scope();
     try!(check_primitives(module.is_core(), type_environment, symbol_table, &mut module.find_primitives_mut()));
     try!(check_structs(type_environment, symbol_table, &mut module.find_structs_mut()));
+    try!(check_casts(module.is_core(), type_environment, symbol_table, &mut module.find_casts_mut()));
     try!(check_constant(type_environment, symbol_table, &mut module.find_constants_mut()));
     symbol_table.leave_scope();
     Ok(())
@@ -46,6 +47,37 @@ fn check_structs(type_environment: &mut TypeEnvironment, symbol_table: &mut Symb
         }
     }
     
+    Ok(())
+}
+
+fn check_casts(is_core_module: bool, type_environment: &mut TypeEnvironment, symbol_table: &mut SymbolTable, casts: &mut Vec<&mut CastDeclaration>) -> TypeCheckResult<()> {
+    if !is_core_module && casts.len() > 0 {
+        return Err(TypeError::SyntaxOnlyValidInCoreModule)
+    }
+    for c in casts.iter_mut() {
+        let source_type = match symbol_table.find_type(&c.source_type.name) {
+            Some(t) => t,
+            None => return Err(TypeError::TypeNotFound(c.source_type.name.clone()))
+        };
+        let target_type = match symbol_table.find_type(&c.target_type.name) {
+            Some(t) => t,
+            None => return Err(TypeError::TypeNotFound(c.target_type.name.clone()))
+        };
+
+        let mut source_type = match type_environment.find_type_mut(source_type.clone()) {
+            Some(t) => t,
+            None => return Err(TypeError::TypeNotFound(c.source_type.name.clone()))
+        };
+
+        if source_type.does_cast_exist(target_type.clone()) {
+            return Err(TypeError::CastAlreadyDeclared(c.source_type.name.clone(), c.target_type.name.clone()));
+        }
+
+        match c.cast_type {
+            CastType::Implicit => source_type.add_implicit_cast(target_type),
+            CastType::Explicit => source_type.add_explicit_cast(target_type),
+        }
+    }
     Ok(())
 }
 

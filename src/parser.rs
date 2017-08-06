@@ -402,16 +402,14 @@ named!(parse_implicit_cast<&[u8], ItemKind>,
     do_parse!(
         ws!(tag!("implicit")) >>
         ws!(tag!("cast")) >>
-        ws!(tag!("(")) >>
-        arguments: ws!(separated_list!(tag!(","), parse_function_argument)) >>
-        ws!(tag!(")")) >>
+        source_type: parse_type_declaration >>
         ws!(tag!("->")) >>
-        return_type: parse_type_declaration >>
+        target_type: parse_type_declaration >>
         ws!(tag!(";")) >>
         (ItemKind::Cast(CastDeclaration{
             cast_type: CastType::Implicit,
-            arguments: arguments,
-            return_type: return_type,
+            source_type: source_type,
+            target_type: target_type,
         }))
     )
 );
@@ -420,16 +418,14 @@ named!(parse_explicit_cast<&[u8], ItemKind>,
     do_parse!(
         ws!(tag!("explicit")) >>
         ws!(tag!("cast")) >>
-        ws!(tag!("(")) >>
-        arguments: ws!(separated_list!(tag!(","), parse_function_argument)) >>
-        ws!(tag!(")")) >>
+        source_type: parse_type_declaration >>
         ws!(tag!("->")) >>
-        return_type: parse_type_declaration >>
+        target_type: parse_type_declaration >>
         ws!(tag!(";")) >>
         (ItemKind::Cast(CastDeclaration{
             cast_type: CastType::Explicit,
-            arguments: arguments,
-            return_type: return_type,
+            source_type: source_type,
+            target_type: target_type,
         }))
     )
 );
@@ -510,19 +506,14 @@ mod tests {
 
     #[test]
     fn parse_implicit_cast_statement() {
-        let code = "implicit cast (val: f32) -> f64;";
+        let code = "implicit cast f32 -> f64;";
         assert_eq!(
             parse_str(code),
             Ok(vec![
                 ItemKind::Cast(CastDeclaration{
                     cast_type: CastType::Implicit,
-                    arguments: vec![
-                        FunctionArgumentDeclaration{
-                            argument_name: Identifier::from_str("val"),
-                            argument_type: Identifier::from_str("f32"),
-                        },
-                    ],
-                    return_type: Identifier::from_str("f64"),
+                    source_type: Identifier::from_str("f32"),
+                    target_type: Identifier::from_str("f64"),
                 })
             ])
         );
@@ -530,19 +521,14 @@ mod tests {
 
     #[test]
     fn parse_explicit_cast_statement() {
-        let code = "explicit cast (val: f32) -> f64;";
+        let code = "explicit cast f32 -> f64;";
         assert_eq!(
             parse_str(code),
             Ok(vec![
                 ItemKind::Cast(CastDeclaration{
                     cast_type: CastType::Explicit,
-                    arguments: vec![
-                        FunctionArgumentDeclaration{
-                            argument_name: Identifier::from_str("val"),
-                            argument_type: Identifier::from_str("f32"),
-                        },
-                    ],
-                    return_type: Identifier::from_str("f64"),
+                    source_type: Identifier::from_str("f32"),
+                    target_type: Identifier::from_str("f64"),
                 })
             ])
         );
