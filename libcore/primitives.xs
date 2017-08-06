@@ -1,8 +1,3 @@
-primitive type bool;
-operator || (lhs: bool, rhs: bool) -> bool;
-operator && (lhs: bool, rhs: bool) -> bool;
-operator ! (lhs: bool, rhs: bool) -> bool;
-
 primitive type f32;
 operator + (lhs: f32, rhs: f32) -> f32;
 operator - (lhs: f32, rhs: f32) -> f32;
@@ -38,3 +33,7 @@ operator / (lhs: i64, rhs: i64) -> i64;
 explicit cast (val: f64) -> f32;
 explicit cast (val: f64) -> i32;
 explicit cast (val: f64) -> i64;
+
+primitive type vec3;
+primitive type vec4;
+primitive type mat4x4;

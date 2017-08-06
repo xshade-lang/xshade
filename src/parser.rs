@@ -17,11 +17,13 @@ named!(parse_constant<&[u8], ItemKind>,
         ws!(tag!("const")) >>
         constant_name: parse_symbol_declaration >>
         ws!(tag!(":")) >>
-        constant_type: parse_type_declaration >>
+        constant_type_name: parse_type_declaration >>
         ws!(tag!(";")) >>
         (ItemKind::Constant(ConstantDefinition{
             constant_name: constant_name,
-            constant_type: constant_type,
+            constant_variant: ConstantVariant::Constant,
+            constant_type_name: constant_type_name,
+            constant_type: Type::Free,
         }))
     )
 );
@@ -31,11 +33,13 @@ named!(parse_sampler<&[u8], ItemKind>,
         ws!(tag!("sampler")) >>
         sampler_name: parse_symbol_declaration >>
         ws!(tag!(":")) >>
-        sampler_type: parse_type_declaration >>
+        sampler_type_name: parse_type_declaration >>
         ws!(tag!(";")) >>
-        (ItemKind::Sampler(SamplerDefinition{
-            sampler_name: sampler_name,
-            sampler_type: sampler_type,
+        (ItemKind::Constant(ConstantDefinition{
+            constant_name: sampler_name,
+            constant_variant: ConstantVariant::Sampler,
+            constant_type_name: sampler_type_name,
+            constant_type: Type::Free,
         }))
     )
 );
@@ -71,10 +75,11 @@ named!(parse_struct_member<&[u8], StructMemberDefinition>,
     do_parse!(
         struct_member_name: parse_symbol_declaration >>
         ws!(tag!(":")) >>
-        struct_member_type: parse_type_declaration >>
+        struct_member_type_name: parse_type_declaration >>
         (StructMemberDefinition{
             struct_member_name: struct_member_name,
-            struct_member_type: struct_member_type,
+            struct_member_type_name: struct_member_type_name,
+            struct_member_type: Type::Free,
         })
     )
 );
@@ -89,7 +94,8 @@ named!(parse_struct<&[u8], ItemKind>,
         ws!(tag!("}")) >>
         (ItemKind::Struct(StructDefinition{
             struct_name: struct_name,
-            struct_member: member
+            struct_member: member,
+            declaring_type: Type::Free,
         }))
     )
 );
@@ -189,22 +195,16 @@ named!(parse_literal_expression<&[u8], ExpressionStatement>,
     )
 );
 
-pub fn infix(operator: char, left: ExpressionStatement, right: ExpressionStatement) -> ExpressionStatement {
-    match operator {
-        '+' => ExpressionStatement::Infix(InfixExpression::Plus(Box::new(left), Box::new(right))),
-        '-' => ExpressionStatement::Infix(InfixExpression::Minus(Box::new(left), Box::new(right))),
-        '*' => ExpressionStatement::Infix(InfixExpression::Multiply(Box::new(left), Box::new(right))),
-        '/' => ExpressionStatement::Infix(InfixExpression::Divide(Box::new(left), Box::new(right))),
-        _ => panic!("")
-    }
-}
-
 named!(parse_infix_expression<&[u8], ExpressionStatement>,
     do_parse!(
         left: parse_expression_no_left_recursion >>
         operator: ws!(one_of!("+-*/")) >>
         right: parse_expression >>
-        (infix(operator, left, right))
+        (ExpressionStatement::Infix(InfixExpression{
+            operator: char_to_operator(operator),
+            left_hand: Box::new(left),
+            right_hand: Box::new(right),
+        }))
     )
 );
 
@@ -358,6 +358,7 @@ named!(parse_primitive<&[u8], ItemKind>,
         ws!(tag!(";")) >>
         (ItemKind::Primitive(PrimitiveDeclaration{
             type_name: type_name,
+            declaring_type: Type::Free,
         }))
     )
 );
@@ -451,13 +452,6 @@ named!(parse<&[u8], Vec<ItemKind>>,
     )
 );
 
-pub fn parse_bytes(program: &[u8]) -> Result<Vec<ItemKind>, CompileError> {
-    match parse(program) {
-        IResult::Done(_, result) => Ok(result),
-        _ => Err(CompileError::new())
-    }
-}
-
 pub fn parse_block(program: &str) -> Result<Vec<BlockStatement>, CompileError> {
     match parse_block_statements(program.as_bytes()) {
         IResult::Done(_, result) => Ok(result),
@@ -483,7 +477,8 @@ mod tests {
             parse_str(code),
             Ok(vec![
                 ItemKind::Primitive(PrimitiveDeclaration{
-                    type_name: Identifier::from_str("f32")
+                    type_name: Identifier::from_str("f32"),
+                    declaring_type: Type::Free,
                 })
             ])
         );
@@ -641,16 +636,15 @@ mod tests {
             Ok(vec![
                 BlockStatement::Local(LocalDeclaration{
                     symbol_name: Identifier::from_str("x"),
-                    expression: ExpressionStatement::Infix(
-                        InfixExpression::Plus(
-                            Box::new(ExpressionStatement::Variable(VariableExpression{
-                                variable_name: Identifier::from_str("a"),
-                            })),
-                            Box::new(ExpressionStatement::Variable(VariableExpression{
-                                variable_name: Identifier::from_str("b"),
-                            })),
-                        )
-                    ),
+                    expression: ExpressionStatement::Infix(InfixExpression{
+                        operator: Operator::Plus,
+                        left_hand: Box::new(ExpressionStatement::Variable(VariableExpression{
+                            variable_name: Identifier::from_str("a"),
+                        })),
+                        right_hand: Box::new(ExpressionStatement::Variable(VariableExpression{
+                            variable_name: Identifier::from_str("b"),
+                        })),
+                    }),
                 })
             ])
         );
@@ -664,23 +658,21 @@ mod tests {
             Ok(vec![
                 BlockStatement::Local(LocalDeclaration{
                     symbol_name: Identifier::from_str("x"),
-                    expression: ExpressionStatement::Infix(
-                        InfixExpression::Plus(
-                            Box::new(ExpressionStatement::Variable(VariableExpression{
-                                variable_name: Identifier::from_str("a"),
+                    expression: ExpressionStatement::Infix(InfixExpression{
+                        operator: Operator::Plus,
+                        left_hand: Box::new(ExpressionStatement::Variable(VariableExpression{
+                            variable_name: Identifier::from_str("a"),
+                        })),
+                        right_hand: Box::new(ExpressionStatement::Infix(InfixExpression{
+                            operator: Operator::Plus,
+                            left_hand: Box::new(ExpressionStatement::Variable(VariableExpression{
+                                variable_name: Identifier::from_str("b"),
                             })),
-                            Box::new(ExpressionStatement::Infix(
-                                InfixExpression::Plus(
-                                    Box::new(ExpressionStatement::Variable(VariableExpression{
-                                        variable_name: Identifier::from_str("b"),
-                                    })),
-                                    Box::new(ExpressionStatement::Variable(VariableExpression{
-                                        variable_name: Identifier::from_str("c"),
-                                    })),
-                                )
-                            )),
-                        )
-                    ),
+                            right_hand: Box::new(ExpressionStatement::Variable(VariableExpression{
+                                variable_name: Identifier::from_str("c"),
+                            })),
+                        })),
+                    }),
                 })
             ])
         );
@@ -867,9 +859,11 @@ mod tests {
         assert_eq!(
             parse_str(code),
             Ok(vec![
-                ItemKind::Sampler(SamplerDefinition {
-                    sampler_name: Identifier::from_str("albedo"),
-                    sampler_type: Identifier::from_str("Sampler2d"),
+                ItemKind::Constant(ConstantDefinition {
+                    constant_name: Identifier::from_str("albedo"),
+                    constant_variant: ConstantVariant::Sampler,
+                    constant_type_name: Identifier::from_str("Sampler2d"),
+                    constant_type: Type::Free,
                 })
             ])
         );
@@ -883,7 +877,9 @@ mod tests {
             Ok(vec![
                 ItemKind::Constant(ConstantDefinition {
                     constant_name: Identifier::from_str("mvp"),
-                    constant_type: Identifier::from_str("mat4x4"),
+                    constant_variant: ConstantVariant::Constant,
+                    constant_type_name: Identifier::from_str("mat4x4"),
+                    constant_type: Type::Free,
                 })
             ])
         );
@@ -905,13 +901,16 @@ mod tests {
                     struct_member: vec![
                         StructMemberDefinition {
                             struct_member_name: Identifier::from_str("position"),
-                            struct_member_type: Identifier::from_str("vec3"),
+                            struct_member_type_name: Identifier::from_str("vec3"),
+                            struct_member_type: Type::Free,
                         },
                         StructMemberDefinition {
                             struct_member_name: Identifier::from_str("uv"),
-                            struct_member_type: Identifier::from_str("vec2"),
+                            struct_member_type_name: Identifier::from_str("vec2"),
+                            struct_member_type: Type::Free,
                         },
                     ],
+                    declaring_type: Type::Free,
                 })
             ])
         );

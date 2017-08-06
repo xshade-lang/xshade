@@ -3,13 +3,19 @@ use ::ast::*;
 #[derive(Debug)]
 pub struct Module {
     ast: Vec<ItemKind>,
+    is_core_module: bool,
 }
 
 impl Module {
-    pub fn from_ast(ast: Vec<ItemKind>) -> Module {
+    pub fn from_ast(ast: Vec<ItemKind>, is_core_module: bool) -> Module {
         Module {
             ast: ast,
+            is_core_module: is_core_module,
         }
+    }
+
+    pub fn is_core(&self) -> bool {
+        self.is_core_module
     }
 
     pub fn find_programs(&self) -> Vec<&ProgramDefinition> {
@@ -76,5 +82,49 @@ impl Module {
             }
         }
         functions
+    }
+
+    pub fn find_primitives(&self) -> Vec<&PrimitiveDeclaration> {
+        let mut primitives = Vec::new();
+        for item in &self.ast {
+            match item {
+                &ItemKind::Primitive(ref p) => primitives.push(p),
+                _ => (),
+            }
+        }
+        primitives
+    }
+
+    pub fn find_primitives_mut(&mut self) -> Vec<&mut PrimitiveDeclaration> {
+        let mut primitives = Vec::new();
+        for item in &mut self.ast {
+            match item {
+                &mut ItemKind::Primitive(ref mut p) => primitives.push(p),
+                _ => (),
+            }
+        }
+        primitives
+    }
+
+    pub fn find_constants(&self) -> Vec<&ConstantDefinition> {
+        let mut constants = Vec::new();
+        for item in &self.ast {
+            match item {
+                &ItemKind::Constant(ref c) => constants.push(c),
+                _ => (),
+            }
+        }
+        constants
+    }
+
+    pub fn find_constants_mut(&mut self) -> Vec<&mut ConstantDefinition> {
+        let mut constants = Vec::new();
+        for item in &mut self.ast {
+            match item {
+                &mut ItemKind::Constant(ref mut c) => constants.push(c),
+                _ => (),
+            }
+        }
+        constants
     }
 }

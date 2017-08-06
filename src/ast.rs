@@ -1,4 +1,5 @@
-use std::str;
+use ::std::str;
+use ::type_system::type_environment::TypeReference;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Identifier {
@@ -22,15 +23,24 @@ impl Identifier {
 type TypeIdentifier = Identifier;
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct SamplerDefinition {
-    pub sampler_name: Identifier,
-    pub sampler_type: TypeIdentifier,
+pub enum Type {
+    Free,
+    Bound,
+    Typed(TypeReference),
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum ConstantVariant {
+    Constant,
+    Sampler,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ConstantDefinition {
     pub constant_name: Identifier,
-    pub constant_type: TypeIdentifier,
+    pub constant_variant: ConstantVariant,
+    pub constant_type_name: TypeIdentifier,
+    pub constant_type: Type,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -49,12 +59,14 @@ pub struct ProgramBindingDefinition {
 pub struct StructDefinition {
     pub struct_name: Identifier,
     pub struct_member: Vec<StructMemberDefinition>,
+    pub declaring_type: Type,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct StructMemberDefinition {
     pub struct_member_name: Identifier,
-    pub struct_member_type: TypeIdentifier,
+    pub struct_member_type_name: TypeIdentifier,
+    pub struct_member_type: Type,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -90,11 +102,10 @@ pub enum LiteralExpression {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum InfixExpression {
-    Plus(Box<ExpressionStatement>, Box<ExpressionStatement>),
-    Minus(Box<ExpressionStatement>, Box<ExpressionStatement>),
-    Divide(Box<ExpressionStatement>, Box<ExpressionStatement>),
-    Multiply(Box<ExpressionStatement>, Box<ExpressionStatement>),
+pub struct InfixExpression {
+    pub operator: Operator,
+    pub left_hand: Box<ExpressionStatement>,
+    pub right_hand: Box<ExpressionStatement>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -151,6 +162,7 @@ pub struct BlockDeclaration {
 #[derive(Debug, Eq, PartialEq)]
 pub struct PrimitiveDeclaration {
     pub type_name: Identifier,
+    pub declaring_type: Type,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -186,7 +198,6 @@ pub enum ItemKind {
     None,
     Struct(StructDefinition),
     Program(ProgramDefinition),
-    Sampler(SamplerDefinition),
     Constant(ConstantDefinition),
     Function(FunctionDeclaration),
     Block(BlockDeclaration),
