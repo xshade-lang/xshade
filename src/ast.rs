@@ -102,11 +102,10 @@ pub enum LiteralExpression {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum InfixExpression {
-    Plus(Box<ExpressionStatement>, Box<ExpressionStatement>),
-    Minus(Box<ExpressionStatement>, Box<ExpressionStatement>),
-    Divide(Box<ExpressionStatement>, Box<ExpressionStatement>),
-    Multiply(Box<ExpressionStatement>, Box<ExpressionStatement>),
+pub struct InfixExpression {
+    pub operator: Operator,
+    pub left_hand: Box<ExpressionStatement>,
+    pub right_hand: Box<ExpressionStatement>,
 }
 
 #[derive(Debug, Eq, PartialEq)]

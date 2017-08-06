@@ -195,22 +195,16 @@ named!(parse_literal_expression<&[u8], ExpressionStatement>,
     )
 );
 
-pub fn infix(operator: char, left: ExpressionStatement, right: ExpressionStatement) -> ExpressionStatement {
-    match operator {
-        '+' => ExpressionStatement::Infix(InfixExpression::Plus(Box::new(left), Box::new(right))),
-        '-' => ExpressionStatement::Infix(InfixExpression::Minus(Box::new(left), Box::new(right))),
-        '*' => ExpressionStatement::Infix(InfixExpression::Multiply(Box::new(left), Box::new(right))),
-        '/' => ExpressionStatement::Infix(InfixExpression::Divide(Box::new(left), Box::new(right))),
-        _ => panic!("")
-    }
-}
-
 named!(parse_infix_expression<&[u8], ExpressionStatement>,
     do_parse!(
         left: parse_expression_no_left_recursion >>
         operator: ws!(one_of!("+-*/")) >>
         right: parse_expression >>
-        (infix(operator, left, right))
+        (ExpressionStatement::Infix(InfixExpression{
+            operator: char_to_operator(operator),
+            left_hand: Box::new(left),
+            right_hand: Box::new(right),
+        }))
     )
 );
 
@@ -642,16 +636,15 @@ mod tests {
             Ok(vec![
                 BlockStatement::Local(LocalDeclaration{
                     symbol_name: Identifier::from_str("x"),
-                    expression: ExpressionStatement::Infix(
-                        InfixExpression::Plus(
-                            Box::new(ExpressionStatement::Variable(VariableExpression{
-                                variable_name: Identifier::from_str("a"),
-                            })),
-                            Box::new(ExpressionStatement::Variable(VariableExpression{
-                                variable_name: Identifier::from_str("b"),
-                            })),
-                        )
-                    ),
+                    expression: ExpressionStatement::Infix(InfixExpression{
+                        operator: Operator::Plus,
+                        left_hand: Box::new(ExpressionStatement::Variable(VariableExpression{
+                            variable_name: Identifier::from_str("a"),
+                        })),
+                        right_hand: Box::new(ExpressionStatement::Variable(VariableExpression{
+                            variable_name: Identifier::from_str("b"),
+                        })),
+                    }),
                 })
             ])
         );
@@ -665,23 +658,21 @@ mod tests {
             Ok(vec![
                 BlockStatement::Local(LocalDeclaration{
                     symbol_name: Identifier::from_str("x"),
-                    expression: ExpressionStatement::Infix(
-                        InfixExpression::Plus(
-                            Box::new(ExpressionStatement::Variable(VariableExpression{
-                                variable_name: Identifier::from_str("a"),
+                    expression: ExpressionStatement::Infix(InfixExpression{
+                        operator: Operator::Plus,
+                        left_hand: Box::new(ExpressionStatement::Variable(VariableExpression{
+                            variable_name: Identifier::from_str("a"),
+                        })),
+                        right_hand: Box::new(ExpressionStatement::Infix(InfixExpression{
+                            operator: Operator::Plus,
+                            left_hand: Box::new(ExpressionStatement::Variable(VariableExpression{
+                                variable_name: Identifier::from_str("b"),
                             })),
-                            Box::new(ExpressionStatement::Infix(
-                                InfixExpression::Plus(
-                                    Box::new(ExpressionStatement::Variable(VariableExpression{
-                                        variable_name: Identifier::from_str("b"),
-                                    })),
-                                    Box::new(ExpressionStatement::Variable(VariableExpression{
-                                        variable_name: Identifier::from_str("c"),
-                                    })),
-                                )
-                            )),
-                        )
-                    ),
+                            right_hand: Box::new(ExpressionStatement::Variable(VariableExpression{
+                                variable_name: Identifier::from_str("c"),
+                            })),
+                        })),
+                    }),
                 })
             ])
         );
