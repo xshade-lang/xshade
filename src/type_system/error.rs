@@ -8,6 +8,7 @@ pub enum TypeError {
     TypeNotFound(String),
     SymbolNameAlreadyUsed(String),
     SyntaxOnlyValidInCoreModule,
+    CastAlreadyDeclared(String, String),
 }
 
 impl fmt::Display for TypeError {
@@ -21,7 +22,10 @@ impl fmt::Display for TypeError {
             },
             TypeError::SyntaxOnlyValidInCoreModule => {
                 write!(f, "Syntax only valid in core module.")
-            }
+            },
+            TypeError::CastAlreadyDeclared(ref from, ref to) => {
+                write!(f, "Cast from \"{}\" to \"{}\" already declared.", from, to)
+            },
         }
     }
 }
@@ -32,6 +36,7 @@ impl Error for TypeError {
             TypeError::TypeNotFound(_) => "Unknown type.",
             TypeError::SymbolNameAlreadyUsed(_) => "Symbol name already declared.",
             TypeError::SyntaxOnlyValidInCoreModule => "Syntax only valid in core module.",
+            TypeError::CastAlreadyDeclared(_, _) => "Cast already declared.",
         }
     }
 }

@@ -189,8 +189,8 @@ pub enum CastType {
 #[derive(Debug, Eq, PartialEq)]
 pub struct CastDeclaration {
     pub cast_type: CastType,
-    pub arguments: Vec<FunctionArgumentDeclaration>,
-    pub return_type: TypeIdentifier,
+    pub source_type: TypeIdentifier,
+    pub target_type: TypeIdentifier,
 }
 
 #[derive(Debug, Eq, PartialEq)]
