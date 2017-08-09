@@ -75,8 +75,8 @@ fn check_casts(is_core_module: bool, type_environment: &mut TypeEnvironment, sym
         }
 
         match c.cast_type {
-            CastType::Implicit => source_type.add_implicit_cast(target_type),
-            CastType::Explicit => source_type.add_explicit_cast(target_type),
+            CastType::Implicit => source_type.add_implicit_cast(&target_type),
+            CastType::Explicit => source_type.add_explicit_cast(&target_type),
         }
     }
     Ok(())
@@ -85,14 +85,13 @@ fn check_casts(is_core_module: bool, type_environment: &mut TypeEnvironment, sym
 fn check_constant(symbol_table: &mut SymbolTable, constants: &mut Vec<&mut ConstantDefinition>) -> TypeCheckResult<()> {
     for s in constants.iter_mut() {
         try!(symbol_table.add_symbol(&s.constant_name.name));
-        match symbol_table.find_type(&s.constant_type_name.name) {
-            Some(type_ref) => {
-                s.constant_type = Type::Typed(type_ref.clone());
-            },
-            None => {
-                return Err(TypeError::TypeNotFound(s.constant_type_name.name.clone()));
-            }
-        }
+        let type_ref = match symbol_table.find_type(&s.constant_type_name.name) {
+            Some(t) => t,
+            None => return Err(TypeError::TypeNotFound(s.constant_type_name.name.clone()))
+        };
+        
+        s.constant_type = Type::Typed(type_ref.clone());
+        try!(symbol_table.resolve_symbol_type(&s.constant_name.name, type_ref.clone()))
     }
     Ok(())
 }
@@ -111,7 +110,7 @@ fn check_functions(symbol_table: &mut SymbolTable, functions: &mut Vec<&mut Func
             None => return Err(TypeError::TypeNotFound(f.return_type_name.name.clone())),
         }
 
-        check_block(symbol_table, &mut f.block);
+        try!(check_block(symbol_table, &mut f.block));
     }
     Ok(())
 }
@@ -121,10 +120,17 @@ fn check_block(symbol_table: &mut SymbolTable, block: &mut BlockDeclaration) -> 
     for s in block.statements.iter_mut() {
         match *s {
             BlockStatement::Local(ref mut local_declaration) => {
-                local_declaration.local_type = Type::Typed(try!(check_expression(symbol_table, &mut local_declaration.expression)));
-                symbol_table.add_symbol(&local_declaration.symbol_name.name);
+                let local_type = try!(check_expression(symbol_table, &mut local_declaration.expression));
+                local_declaration.local_type = Type::Typed(local_type.clone());
+                try!(symbol_table.add_symbol_with_type(&local_declaration.symbol_name.name, local_type));
+            },
+            BlockStatement::Return(ref mut return_declaration) => {
+                let return_type = try!(check_expression(symbol_table, &mut return_declaration.expression));
+                return_declaration.return_type = Type::Typed(return_type);
+            },
+            BlockStatement::Expression(ref mut expression_statement) => {
+                try!(check_expression(symbol_table, expression_statement));
             }
-            _ => (),
         }
     }
     symbol_table.leave_scope();
@@ -134,7 +140,21 @@ fn check_block(symbol_table: &mut SymbolTable, block: &mut BlockDeclaration) -> 
 fn check_expression(symbol_table: &mut SymbolTable, expression: &mut ExpressionStatement) -> TypeCheckResult<TypeReference> {
     match *expression {
         ExpressionStatement::Literal(ref mut literal_expression) => check_literal_expression(symbol_table, literal_expression),
+        ExpressionStatement::Variable(ref mut variable_expression) => check_variable_expression(symbol_table, variable_expression),
         _ => Ok(TypeReference::new(0)), // TODO
+    }
+}
+
+fn check_variable_expression(symbol_table: &mut SymbolTable, variable_expression: &mut VariableExpression) -> TypeCheckResult<TypeReference> {
+    match symbol_table.find_symbol(&variable_expression.variable_name.name) {
+        Some(ref symbol) => match symbol.get_type() {
+            Some(t) => {
+                variable_expression.variable_type = Type::Typed(t.clone());
+                return Ok(t);
+            },
+            None => return Err(TypeError::CannotInfer(variable_expression.variable_name.name.clone())),
+        },
+        None => return Err(TypeError::VariableNotFound(variable_expression.variable_name.name.clone())),
     }
 }
 

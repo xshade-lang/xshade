@@ -9,6 +9,8 @@ pub enum TypeError {
     SymbolNameAlreadyUsed(String),
     SyntaxOnlyValidInCoreModule,
     CastAlreadyDeclared(String, String),
+    VariableNotFound(String),
+    CannotInfer(String),
 }
 
 impl fmt::Display for TypeError {
@@ -26,6 +28,12 @@ impl fmt::Display for TypeError {
             TypeError::CastAlreadyDeclared(ref from, ref to) => {
                 write!(f, "Cast from \"{}\" to \"{}\" already declared.", from, to)
             },
+            TypeError::VariableNotFound(ref variable_name) => {
+                write!(f, "Unknown variable \"{}\".", variable_name)
+            },
+            TypeError::CannotInfer(ref variable_name) => {
+                write!(f, "Cannot infer type for variable \"{}\".", variable_name)
+            },
         }
     }
 }
@@ -37,6 +45,8 @@ impl Error for TypeError {
             TypeError::SymbolNameAlreadyUsed(_) => "Symbol name already declared.",
             TypeError::SyntaxOnlyValidInCoreModule => "Syntax only valid in core module.",
             TypeError::CastAlreadyDeclared(_, _) => "Cast already declared.",
+            TypeError::VariableNotFound(_) => "Unknown type.",
+            TypeError::CannotInfer(_) => "Cannot infer type.",
         }
     }
 }

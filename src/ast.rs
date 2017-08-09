@@ -120,6 +120,7 @@ pub struct InfixExpression {
 #[derive(Debug, Eq, PartialEq)]
 pub struct VariableExpression {
     pub variable_name: Identifier,
+    pub variable_type: Type,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -153,6 +154,12 @@ pub struct LocalDeclaration {
 }
 
 #[derive(Debug, Eq, PartialEq)]
+pub struct ReturnDeclaration {
+    pub expression: ExpressionStatement,
+    pub return_type: Type,
+}
+
+#[derive(Debug, Eq, PartialEq)]
 pub struct CallExpression {
     pub function_name: Identifier,
     pub arguments: Vec<ExpressionStatement>,
@@ -160,12 +167,11 @@ pub struct CallExpression {
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum BlockStatement {
-    None,
     /// e.g. a `let` statement
     Local(LocalDeclaration),
 
     /// return statement
-    Return(ExpressionStatement),
+    Return(ReturnDeclaration),
 
     /// statement with only expressions e.g. `my_fn();`
     Expression(ExpressionStatement),

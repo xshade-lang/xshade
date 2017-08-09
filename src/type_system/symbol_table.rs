@@ -23,6 +23,13 @@ impl Symbol {
         }
     }
 
+    pub fn get_type(&self) -> Option<TypeReference> {
+        match self.state {
+            SymbolState::Typed(t) => Some(t.clone()),
+            _ => None
+        }
+    }
+
     pub fn resolve_type(&mut self, type_reference: TypeReference) {
         match self.state {
             SymbolState::Bound => self.state = SymbolState::Typed(type_reference),
@@ -78,10 +85,13 @@ impl SymbolTable {
         Ok(())
     }
 
-    pub fn find_type(&self, name: &str) -> Option<&TypeReference> {
+    pub fn find_type(&self, name: &str) -> Option<TypeReference> {
         for scope in &self.scopes {
             if scope.types.contains_key(name) {
-                return scope.types.get(name);
+                match scope.types.get(name) {
+                    Some(t) => return Some(t.clone()),
+                    None => return None,
+                }
             }
         }
 
@@ -94,6 +104,15 @@ impl SymbolTable {
         }
 
         self.scopes[0].symbols.insert(name.to_string(), Symbol::new(name, SymbolState::Free));
+        Ok(())
+    }
+
+    pub fn add_symbol_with_type(&mut self, name: &str, symbol_type: TypeReference) -> TypeCheckResult<()> {
+        if self.scopes[0].symbols.contains_key(name) {
+            return Err(TypeError::SymbolNameAlreadyUsed(name.to_string()));
+        }
+
+        self.scopes[0].symbols.insert(name.to_string(), Symbol::new(name, SymbolState::Typed(symbol_type)));
         Ok(())
     }
 
@@ -115,6 +134,20 @@ impl SymbolTable {
         }
 
         None
+    }
+
+    pub fn resolve_symbol_type(&mut self, name: &str, symbol_type: TypeReference) -> TypeCheckResult<()> {
+        for scope in &mut self.scopes {
+            if scope.symbols.contains_key(name) {
+                match scope.symbols.get_mut(name) {
+                    Some(ref mut s) => s.resolve_type(symbol_type),
+                    None => return Err(TypeError::VariableNotFound(name.to_string())),
+                }
+                return Ok(());
+            }
+        }
+
+        return Err(TypeError::VariableNotFound(name.to_string()));
     }
 
     pub fn enter_scope(&mut self) {

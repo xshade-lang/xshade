@@ -222,6 +222,7 @@ named!(parse_variable_expression<&[u8], ExpressionStatement>,
         variable_name: parse_symbol_declaration >>
         (ExpressionStatement::Variable(VariableExpression{
             variable_name: variable_name,
+            variable_type: Type::Free,
         }))
     )
 );
@@ -303,9 +304,10 @@ named!(parse_return_declaration<&[u8], BlockStatement>,
         ws!(tag!("return")) >>
         expression: parse_expression >>
         ws!(tag!(";")) >>
-        (BlockStatement::Return(
-            expression
-        ))
+        (BlockStatement::Return(ReturnDeclaration{
+            expression: expression,
+            return_type: Type::Free,
+        }))
     )
 );
 
@@ -616,9 +618,11 @@ mod tests {
                     arguments: vec![
                         ExpressionStatement::Variable(VariableExpression{
                             variable_name: Identifier::from_str("a"),
+                            variable_type: Type::Free,
                         }),
                         ExpressionStatement::Variable(VariableExpression{
                             variable_name: Identifier::from_str("b"),
+                            variable_type: Type::Free,
                         })
                     ],
                 }))
@@ -656,9 +660,11 @@ mod tests {
                         operator: Operator::Plus,
                         left_hand: Box::new(ExpressionStatement::Variable(VariableExpression{
                             variable_name: Identifier::from_str("a"),
+                            variable_type: Type::Free,
                         })),
                         right_hand: Box::new(ExpressionStatement::Variable(VariableExpression{
                             variable_name: Identifier::from_str("b"),
+                            variable_type: Type::Free,
                         })),
                     }),
                     local_type: Type::Free,
@@ -679,14 +685,17 @@ mod tests {
                         operator: Operator::Plus,
                         left_hand: Box::new(ExpressionStatement::Variable(VariableExpression{
                             variable_name: Identifier::from_str("a"),
+                            variable_type: Type::Free,
                         })),
                         right_hand: Box::new(ExpressionStatement::Infix(InfixExpression{
                             operator: Operator::Plus,
                             left_hand: Box::new(ExpressionStatement::Variable(VariableExpression{
                                 variable_name: Identifier::from_str("b"),
+                            variable_type: Type::Free,
                             })),
                             right_hand: Box::new(ExpressionStatement::Variable(VariableExpression{
                                 variable_name: Identifier::from_str("c"),
+                            variable_type: Type::Free,
                             })),
                         })),
                     }),
@@ -793,11 +802,14 @@ mod tests {
             parse_block(code),
             Ok(vec![
                 BlockStatement::Return(
-                    ExpressionStatement::Literal(LiteralExpression{
-                        value: "0".to_string(),
-                        literal_expression_type: LiteralType::Int,
-                        literal_type: Type::Free,
-                    })
+                    ReturnDeclaration{
+                        expression: ExpressionStatement::Literal(LiteralExpression{
+                            value: "0".to_string(),
+                            literal_expression_type: LiteralType::Int,
+                            literal_type: Type::Free,
+                        }),
+                        return_type: Type::Free,
+                    }
                 )
             ])
         );
@@ -869,7 +881,15 @@ mod tests {
                     ],
                     block: BlockDeclaration {
                         statements: vec![
-                            BlockStatement::Return(ExpressionStatement::Variable(VariableExpression{ variable_name: Identifier::from_str("a") }))
+                            BlockStatement::Return(
+                                ReturnDeclaration{
+                                    expression: ExpressionStatement::Variable(VariableExpression{
+                                        variable_name: Identifier::from_str("a"),
+                                        variable_type: Type::Free,
+                                    }),
+                                    return_type: Type::Free,
+                                }
+                            )
                         ],
                     },
                     return_type_name: Identifier::from_str("void"),
@@ -891,12 +911,15 @@ mod tests {
                     block: BlockDeclaration {
                         statements: vec![
                             BlockStatement::Return(
-                                ExpressionStatement::Literal(LiteralExpression{
-                                    value: "0.0".to_string(),
-                                    literal_expression_type: LiteralType::Float,
-                                    literal_type: Type::Free,
+                                ReturnDeclaration{
+                                    expression: ExpressionStatement::Literal(LiteralExpression{
+                                        value: "0.0".to_string(),
+                                        literal_expression_type: LiteralType::Float,
+                                        literal_type: Type::Free,
+                                    }),
+                                    return_type: Type::Free,
                                 }
-                            ))
+                            )
                         ],
                     },
                     return_type_name: Identifier::from_str("void"),
