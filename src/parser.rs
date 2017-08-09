@@ -215,6 +215,7 @@ named!(parse_infix_expression<&[u8], ExpressionStatement>,
             operator: char_to_operator(operator),
             left_hand: Box::new(left),
             right_hand: Box::new(right),
+            infix_type: Type::Free,
         }))
     )
 );
@@ -668,6 +669,7 @@ mod tests {
                             variable_name: Identifier::from_str("b"),
                             variable_type: Type::Free,
                         })),
+                        infix_type: Type::Free,
                     }),
                     local_type: Type::Free,
                 })
@@ -693,13 +695,15 @@ mod tests {
                             operator: Operator::Plus,
                             left_hand: Box::new(ExpressionStatement::Variable(VariableExpression{
                                 variable_name: Identifier::from_str("b"),
-                            variable_type: Type::Free,
+                                variable_type: Type::Free,
                             })),
                             right_hand: Box::new(ExpressionStatement::Variable(VariableExpression{
                                 variable_name: Identifier::from_str("c"),
-                            variable_type: Type::Free,
+                                variable_type: Type::Free,
                             })),
+                            infix_type: Type::Free,
                         })),
+                        infix_type: Type::Free,
                     }),
                     local_type: Type::Free,
                 })

@@ -159,6 +159,8 @@ fn check_infix_expression(symbol_table: &mut SymbolTable, infix_expression: &mut
 
     // TODO check if operator is available
 
+    infix_expression.infix_type = Type::Typed(left_hand_type);
+
     Ok(left_hand_type)
 }
 

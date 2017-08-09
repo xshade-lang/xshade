@@ -117,6 +117,7 @@ pub struct InfixExpression {
     pub operator: Operator,
     pub left_hand: Box<ExpressionStatement>,
     pub right_hand: Box<ExpressionStatement>,
+    pub infix_type: Type,
 }
 
 #[derive(Debug, Eq, PartialEq)]
