@@ -97,10 +97,14 @@ fn check_constant(symbol_table: &mut SymbolTable, constants: &mut Vec<&mut Const
 }
 
 fn check_functions(symbol_table: &mut SymbolTable, functions: &mut Vec<&mut FunctionDeclaration>) -> TypeCheckResult<()> {
-    for f in functions.iter_mut() { 
+    for f in functions.iter_mut() {
+        symbol_table.enter_scope();
         for argument in f.arguments.iter_mut() {
             match symbol_table.find_type(&argument.argument_type_name.name) {
-                Some(type_ref) => argument.argument_type = Type::Typed(type_ref.clone()),
+                Some(type_ref) => {
+                    argument.argument_type = Type::Typed(type_ref.clone());
+                    try!(symbol_table.add_symbol_with_type(&argument.argument_name.name, type_ref.clone()));
+                }
                 None => return Err(TypeError::TypeNotFound(argument.argument_type_name.name.clone())),
             }
         }
@@ -111,6 +115,7 @@ fn check_functions(symbol_table: &mut SymbolTable, functions: &mut Vec<&mut Func
         }
 
         try!(check_block(symbol_table, &mut f.block));
+        symbol_table.leave_scope();
     }
     Ok(())
 }
@@ -141,8 +146,19 @@ fn check_expression(symbol_table: &mut SymbolTable, expression: &mut ExpressionS
     match *expression {
         ExpressionStatement::Literal(ref mut literal_expression) => check_literal_expression(symbol_table, literal_expression),
         ExpressionStatement::Variable(ref mut variable_expression) => check_variable_expression(symbol_table, variable_expression),
+        ExpressionStatement::Infix(ref mut infix_expression) => check_infix_expression(symbol_table, infix_expression),
         _ => Ok(TypeReference::new(0)), // TODO
     }
+}
+
+fn check_infix_expression(symbol_table: &mut SymbolTable, infix_expression: &mut InfixExpression) -> TypeCheckResult<TypeReference> {
+    let left_hand_type = try!(check_expression(symbol_table, &mut *infix_expression.left_hand));
+    let right_hand_type = try!(check_expression(symbol_table, &mut *infix_expression.right_hand));
+
+    // TODO associativity
+    // TODO check if operator is available
+
+    Ok(left_hand_type)
 }
 
 fn check_variable_expression(symbol_table: &mut SymbolTable, variable_expression: &mut VariableExpression) -> TypeCheckResult<TypeReference> {
