@@ -104,10 +104,11 @@ named!(parse_function_argument<&[u8], FunctionArgumentDeclaration>,
     do_parse!(
         argument_name: parse_symbol_declaration >>
         ws!(tag!(":")) >>
-        argument_type: parse_type_declaration >>
+        argument_type_name: parse_type_declaration >>
         (FunctionArgumentDeclaration{
             argument_name: argument_name,
-            argument_type: argument_type,
+            argument_type_name: argument_type_name,
+            argument_type: Type::Free,
         })
     )
 );
@@ -154,7 +155,11 @@ named!(parse_struct_instantiation<&[u8], ExpressionStatement>,
 
 fn parse_int_literal(parts: Vec<char>) -> ExpressionStatement {
     let string: String = parts.into_iter().collect();
-    ExpressionStatement::Literal(LiteralExpression::Int(string))
+    ExpressionStatement::Literal(LiteralExpression{
+        value: string,
+        literal_expression_type: LiteralType::Int,
+        literal_type: Type::Free,
+    })
 }
 
 fn parse_float_literal(before: Vec<char>, after: Vec<char>) -> ExpressionStatement {
@@ -162,7 +167,11 @@ fn parse_float_literal(before: Vec<char>, after: Vec<char>) -> ExpressionStateme
     let after: String = after.into_iter().collect();
     before.push_str(".");
     before.push_str(&after);
-    ExpressionStatement::Literal(LiteralExpression::Float(before))
+    ExpressionStatement::Literal(LiteralExpression{
+        value: before,
+        literal_expression_type: LiteralType::Float,
+        literal_type: Type::Free,
+    })
 }
 
 named!(parse_float_literal_expression<&[u8], ExpressionStatement>,
@@ -217,13 +226,6 @@ named!(parse_variable_expression<&[u8], ExpressionStatement>,
     )
 );
 
-named!(parse_call_statement<&[u8], BlockStatement>,
-    do_parse!(
-        call: parse_call >>
-        (BlockStatement::Call(call))
-    )
-);
-
 named!(parse_call_expression<&[u8], ExpressionStatement>,
     do_parse!(
         call: parse_call >>
@@ -231,28 +233,28 @@ named!(parse_call_expression<&[u8], ExpressionStatement>,
     )
 );
 
-named!(parse_call<&[u8], CallDeclaration>,
+named!(parse_call<&[u8], CallExpression>,
     do_parse!(
         function_name: parse_symbol_declaration >>
         ws!(tag!("(")) >>
         arguments: ws!(separated_list!(tag!(","), parse_expression)) >>
         ws!(tag!(")")) >>
-        (CallDeclaration {
+        (CallExpression {
             function_name: function_name,
             arguments: arguments,
         })
     )
 );
 
-// TODO more accessor types like `a.b.c`
-named!(parse_accessor_expression<&[u8], ExpressionStatement>,
+// TODO nested accessor expressions like `a.b.c`
+named!(parse_field_accessor_expression<&[u8], ExpressionStatement>,
     do_parse!(
         variable_name: parse_symbol_declaration >>
         ws!(tag!(".")) >>
-        accesse: parse_symbol_declaration >>
-        (ExpressionStatement::Accessor(AccessorExpression{
+        field_name: parse_symbol_declaration >>
+        (ExpressionStatement::FieldAccessor(FieldAccessorExpression{
             variable_name: variable_name,
-            accesse: accesse,
+            field_name: field_name,
         }))
     )
 );
@@ -273,10 +275,9 @@ named!(parse_expression<&[u8], ExpressionStatement>,
         parse_infix_expression |
         parse_struct_instantiation |
         parse_literal_expression |
-        parse_accessor_expression |
+        parse_field_accessor_expression |
         parse_call_expression |
-        parse_variable_expression |
-        parse_accessor_expression
+        parse_variable_expression
     )
 );
 
@@ -291,6 +292,7 @@ named!(parse_local_declaration<&[u8], BlockStatement>,
             LocalDeclaration{
                 symbol_name: symbol_name,
                 expression: expression,
+                local_type: Type::Free,
             }
         ))
     )
@@ -307,13 +309,23 @@ named!(parse_return_declaration<&[u8], BlockStatement>,
     )
 );
 
+named!(parse_expression_declaration<&[u8], BlockStatement>,
+    do_parse!(
+        expression: parse_expression >>
+        ws!(tag!(";")) >>
+        (BlockStatement::Expression(
+            expression
+        ))
+    )
+);
+
 named!(parse_block_statements<&[u8], Vec<BlockStatement>>,
     many0!(
         ws!(
             alt!(
                 parse_local_declaration |
                 parse_return_declaration |
-                parse_call_statement
+                parse_expression_declaration
             )
         )
     )
@@ -337,7 +349,7 @@ named!(parse_function<&[u8], ItemKind>,
         arguments: ws!(separated_list!(tag!(","), parse_function_argument)) >>
         ws!(tag!(")")) >>
         ws!(tag!("->")) >>
-        return_type: parse_type_declaration >>
+        return_type_name: parse_type_declaration >>
         ws!(tag!("{")) >>
         block: parse_block_declaration >>
         ws!(tag!("}")) >>
@@ -345,7 +357,8 @@ named!(parse_function<&[u8], ItemKind>,
             function_name: function_name,
             arguments: arguments,
             block: block,
-            return_type: return_type,
+            return_type_name: return_type_name,
+            return_type: Type::Free,
         }))
     )
 );
@@ -491,11 +504,13 @@ mod tests {
                     arguments: vec![
                         FunctionArgumentDeclaration{
                             argument_name: Identifier::from_str("lhs"),
-                            argument_type: Identifier::from_str("f64"),
+                            argument_type_name: Identifier::from_str("f64"),
+                            argument_type: Type::Free,
                         },
                         FunctionArgumentDeclaration{
                             argument_name: Identifier::from_str("rhs"),
-                            argument_type: Identifier::from_str("f64"),
+                            argument_type_name: Identifier::from_str("f64"),
+                            argument_type: Type::Free,
                         }
                     ],
                     return_type: Identifier::from_str("f64"),
@@ -542,7 +557,12 @@ mod tests {
             Ok(vec![
                 BlockStatement::Local(LocalDeclaration{
                     symbol_name: Identifier::from_str("x"),
-                    expression: ExpressionStatement::Literal(LiteralExpression::Int("42".to_string()))
+                    expression: ExpressionStatement::Literal(LiteralExpression{
+                        value: "42".to_string(),
+                        literal_expression_type: LiteralType::Int,
+                        literal_type: Type::Free,
+                    }),
+                    local_type: Type::Free,
                 })
             ])
         );
@@ -556,7 +576,12 @@ mod tests {
             Ok(vec![
                 BlockStatement::Local(LocalDeclaration{
                     symbol_name: Identifier::from_str("x"),
-                    expression: ExpressionStatement::Literal(LiteralExpression::Float("42.0".to_string()))
+                    expression: ExpressionStatement::Literal(LiteralExpression{
+                        value: "42.0".to_string(),
+                        literal_expression_type: LiteralType::Float,
+                        literal_type: Type::Free,
+                    }),
+                    local_type: Type::Free,
                 })
             ])
         );
@@ -568,10 +593,14 @@ mod tests {
         assert_eq!(
             parse_block(code),
             Ok(vec![
-                BlockStatement::Call(CallDeclaration{
-                    function_name: Identifier::from_str("test"),
-                    arguments: Vec::new(),
-                })
+                BlockStatement::Expression(
+                    ExpressionStatement::Call(
+                        CallExpression{
+                            function_name: Identifier::from_str("test"),
+                            arguments: Vec::new(),
+                        }
+                    )
+                )
             ])
         );
     }
@@ -582,7 +611,7 @@ mod tests {
         assert_eq!(
             parse_block(code),
             Ok(vec![
-                BlockStatement::Call(CallDeclaration{
+                BlockStatement::Expression(ExpressionStatement::Call(CallExpression{
                     function_name: Identifier::from_str("test"),
                     arguments: vec![
                         ExpressionStatement::Variable(VariableExpression{
@@ -592,7 +621,7 @@ mod tests {
                             variable_name: Identifier::from_str("b"),
                         })
                     ],
-                })
+                }))
             ])
         );
     }
@@ -605,10 +634,11 @@ mod tests {
             Ok(vec![
                 BlockStatement::Local(LocalDeclaration{
                     symbol_name: Identifier::from_str("x"),
-                    expression: ExpressionStatement::Call(CallDeclaration{
+                    expression: ExpressionStatement::Call(CallExpression{
                         function_name: Identifier::from_str("test"),
                         arguments: Vec::new(),
-                    })
+                    }),
+                    local_type: Type::Free,
                 })
             ])
         );
@@ -631,6 +661,7 @@ mod tests {
                             variable_name: Identifier::from_str("b"),
                         })),
                     }),
+                    local_type: Type::Free,
                 })
             ])
         );
@@ -659,6 +690,7 @@ mod tests {
                             })),
                         })),
                     }),
+                    local_type: Type::Free,
                 })
             ])
         );
@@ -682,14 +714,23 @@ mod tests {
                         struct_field_initializer: vec![
                             StructFieldInitializerExpression{
                                 struct_field_name: Identifier::from_str("a"),
-                                initializer: Box::new(ExpressionStatement::Literal(LiteralExpression::Int("24".to_string()))),
+                                initializer: Box::new(ExpressionStatement::Literal(LiteralExpression{
+                                    value: "24".to_string(),
+                                    literal_expression_type: LiteralType::Int,
+                                    literal_type: Type::Free,
+                                })),
                             },
                             StructFieldInitializerExpression{
                                 struct_field_name: Identifier::from_str("b"),
-                                initializer: Box::new(ExpressionStatement::Literal(LiteralExpression::Int("42".to_string()))),
+                                initializer: Box::new(ExpressionStatement::Literal(LiteralExpression{
+                                    value: "42".to_string(),
+                                    literal_expression_type: LiteralType::Int,
+                                    literal_type: Type::Free,
+                                })),
                             },
                         ],
-                    })
+                    }),
+                    local_type: Type::Free,
                 })
             ])
         );
@@ -715,7 +756,11 @@ mod tests {
                         struct_field_initializer: vec![
                             StructFieldInitializerExpression{
                                 struct_field_name: Identifier::from_str("a"),
-                                initializer: Box::new(ExpressionStatement::Literal(LiteralExpression::Int("24".to_string()))),
+                                initializer: Box::new(ExpressionStatement::Literal(LiteralExpression{
+                                    value: "24".to_string(),
+                                    literal_expression_type: LiteralType::Int,
+                                    literal_type: Type::Free,
+                                })),
                             },
                             StructFieldInitializerExpression{
                                 struct_field_name: Identifier::from_str("b"),
@@ -724,13 +769,18 @@ mod tests {
                                     struct_field_initializer: vec![
                                         StructFieldInitializerExpression{
                                             struct_field_name: Identifier::from_str("c"),
-                                            initializer: Box::new(ExpressionStatement::Literal(LiteralExpression::Int("42".to_string()))),
+                                            initializer: Box::new(ExpressionStatement::Literal(LiteralExpression{
+                                                value: "42".to_string(),
+                                                literal_expression_type: LiteralType::Int,
+                                                literal_type: Type::Free,
+                                            })),
                                         },
                                     ],
                                 })),
                             },
                         ],
-                    })
+                    }),
+                    local_type: Type::Free,
                 })
             ])
         );
@@ -743,7 +793,11 @@ mod tests {
             parse_block(code),
             Ok(vec![
                 BlockStatement::Return(
-                    ExpressionStatement::Literal(LiteralExpression::Int("0".to_string()))
+                    ExpressionStatement::Literal(LiteralExpression{
+                        value: "0".to_string(),
+                        literal_expression_type: LiteralType::Int,
+                        literal_type: Type::Free,
+                    })
                 )
             ])
         );
@@ -761,7 +815,8 @@ mod tests {
                     block: BlockDeclaration {
                         statements: Vec::new(),
                     },
-                    return_type: Identifier::from_str("void"),
+                    return_type_name: Identifier::from_str("void"),
+                    return_type: Type::Free,
                 })
             ])
         );
@@ -778,17 +833,20 @@ mod tests {
                     arguments: vec![
                         FunctionArgumentDeclaration {
                             argument_name: Identifier::from_str("a"),
-                            argument_type: Identifier::from_str("B"),
+                            argument_type_name: Identifier::from_str("B"),
+                            argument_type: Type::Free,
                         },
                         FunctionArgumentDeclaration {
                             argument_name: Identifier::from_str("c"),
-                            argument_type: Identifier::from_str("D"),
+                            argument_type_name: Identifier::from_str("D"),
+                            argument_type: Type::Free,
                         }
                     ],
                     block: BlockDeclaration {
                         statements: Vec::new(),
                     },
-                    return_type: Identifier::from_str("void"),
+                    return_type_name: Identifier::from_str("void"),
+                    return_type: Type::Free,
                 })
             ])
         );
@@ -805,7 +863,8 @@ mod tests {
                     arguments: vec![
                         FunctionArgumentDeclaration {
                             argument_name: Identifier::from_str("a"),
-                            argument_type: Identifier::from_str("B"),
+                            argument_type_name: Identifier::from_str("B"),
+                            argument_type: Type::Free,
                         }
                     ],
                     block: BlockDeclaration {
@@ -813,7 +872,8 @@ mod tests {
                             BlockStatement::Return(ExpressionStatement::Variable(VariableExpression{ variable_name: Identifier::from_str("a") }))
                         ],
                     },
-                    return_type: Identifier::from_str("void"),
+                    return_type_name: Identifier::from_str("void"),
+                    return_type: Type::Free,
                 })
             ])
         );
@@ -830,10 +890,17 @@ mod tests {
                     arguments: Vec::new(),
                     block: BlockDeclaration {
                         statements: vec![
-                            BlockStatement::Return(ExpressionStatement::Literal(LiteralExpression::Float("0.0".to_string())))
+                            BlockStatement::Return(
+                                ExpressionStatement::Literal(LiteralExpression{
+                                    value: "0.0".to_string(),
+                                    literal_expression_type: LiteralType::Float,
+                                    literal_type: Type::Free,
+                                }
+                            ))
                         ],
                     },
-                    return_type: Identifier::from_str("void"),
+                    return_type_name: Identifier::from_str("void"),
+                    return_type: Type::Free,
                 })
             ])
         );

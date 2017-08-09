@@ -72,7 +72,8 @@ pub struct StructMemberDefinition {
 #[derive(Debug, Eq, PartialEq)]
 pub struct FunctionArgumentDeclaration {
     pub argument_name: Identifier,
-    pub argument_type: TypeIdentifier,
+    pub argument_type_name: TypeIdentifier,
+    pub argument_type: Type,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -80,7 +81,8 @@ pub struct FunctionDeclaration {
     pub function_name: Identifier,
     pub arguments: Vec<FunctionArgumentDeclaration>,
     pub block: BlockDeclaration,
-    pub return_type: TypeIdentifier,
+    pub return_type_name: TypeIdentifier,
+    pub return_type: Type,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -96,9 +98,16 @@ pub struct StructInstantiationExpression {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum LiteralExpression {
-    Int(String),
-    Float(String),
+pub enum LiteralType {
+    Int,
+    Float,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct LiteralExpression {
+    pub value: String,
+    pub literal_expression_type: LiteralType,
+    pub literal_type: Type,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -114,18 +123,25 @@ pub struct VariableExpression {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct AccessorExpression {
+pub struct FieldAccessorExpression {
     pub variable_name: Identifier,
-    pub accesse: Identifier,
+    pub field_name: Identifier,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct IndexAccesorExpression {
+    pub variable_name: Identifier,
+    pub access_expression: Box<ExpressionStatement>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ExpressionStatement {
     Infix(InfixExpression),
     Literal(LiteralExpression),
-    Call(CallDeclaration),
+    Call(CallExpression),
     StructInstantiation(StructInstantiationExpression),
-    Accessor(AccessorExpression),
+    FieldAccessor(FieldAccessorExpression),
+    IndexAccessor(IndexAccesorExpression),
     Variable(VariableExpression),
 }
 
@@ -133,10 +149,11 @@ pub enum ExpressionStatement {
 pub struct LocalDeclaration {
     pub symbol_name: Identifier,
     pub expression: ExpressionStatement,
+    pub local_type: Type,
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct CallDeclaration {
+pub struct CallExpression {
     pub function_name: Identifier,
     pub arguments: Vec<ExpressionStatement>,
 }
@@ -150,8 +167,8 @@ pub enum BlockStatement {
     /// return statement
     Return(ExpressionStatement),
 
-    /// function call
-    Call(CallDeclaration),
+    /// statement with only expressions e.g. `my_fn();`
+    Expression(ExpressionStatement),
 }
 
 #[derive(Debug, Eq, PartialEq)]

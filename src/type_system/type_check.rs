@@ -2,14 +2,15 @@ use ::ast::*;
 use ::module::Module;
 use ::type_system::error::{ TypeError, TypeCheckResult };
 use ::type_system::symbol_table::SymbolTable;
-use ::type_system::type_environment::TypeEnvironment;
+use ::type_system::type_environment::{ TypeEnvironment, TypeReference };
 
 pub fn type_check(type_environment: &mut TypeEnvironment, symbol_table: &mut SymbolTable, module: &mut Module) -> TypeCheckResult<()> {
     symbol_table.enter_scope();
     try!(check_primitives(module.is_core(), type_environment, symbol_table, &mut module.find_primitives_mut()));
     try!(check_structs(type_environment, symbol_table, &mut module.find_structs_mut()));
     try!(check_casts(module.is_core(), type_environment, symbol_table, &mut module.find_casts_mut()));
-    try!(check_constant(type_environment, symbol_table, &mut module.find_constants_mut()));
+    try!(check_constant(symbol_table, &mut module.find_constants_mut()));
+    try!(check_functions(symbol_table, &mut module.find_functions_mut()));
     symbol_table.leave_scope();
     Ok(())
 }
@@ -81,7 +82,7 @@ fn check_casts(is_core_module: bool, type_environment: &mut TypeEnvironment, sym
     Ok(())
 }
 
-fn check_constant(type_environment: &mut TypeEnvironment, symbol_table: &mut SymbolTable, constants: &mut Vec<&mut ConstantDefinition>) -> TypeCheckResult<()> {
+fn check_constant(symbol_table: &mut SymbolTable, constants: &mut Vec<&mut ConstantDefinition>) -> TypeCheckResult<()> {
     for s in constants.iter_mut() {
         try!(symbol_table.add_symbol(&s.constant_name.name));
         match symbol_table.find_type(&s.constant_type_name.name) {
@@ -94,6 +95,62 @@ fn check_constant(type_environment: &mut TypeEnvironment, symbol_table: &mut Sym
         }
     }
     Ok(())
+}
+
+fn check_functions(symbol_table: &mut SymbolTable, functions: &mut Vec<&mut FunctionDeclaration>) -> TypeCheckResult<()> {
+    for f in functions.iter_mut() { 
+        for argument in f.arguments.iter_mut() {
+            match symbol_table.find_type(&argument.argument_type_name.name) {
+                Some(type_ref) => argument.argument_type = Type::Typed(type_ref.clone()),
+                None => return Err(TypeError::TypeNotFound(argument.argument_type_name.name.clone())),
+            }
+        }
+
+        match symbol_table.find_type(&f.return_type_name.name) {
+            Some(type_ref) => f.return_type = Type::Typed(type_ref.clone()),
+            None => return Err(TypeError::TypeNotFound(f.return_type_name.name.clone())),
+        }
+
+        check_block(symbol_table, &mut f.block);
+    }
+    Ok(())
+}
+
+fn check_block(symbol_table: &mut SymbolTable, block: &mut BlockDeclaration) -> TypeCheckResult<()> {
+    symbol_table.enter_scope();
+    for s in block.statements.iter_mut() {
+        match *s {
+            BlockStatement::Local(ref mut local_declaration) => {
+                local_declaration.local_type = Type::Typed(try!(check_expression(symbol_table, &mut local_declaration.expression)));
+                symbol_table.add_symbol(&local_declaration.symbol_name.name);
+            }
+            _ => (),
+        }
+    }
+    symbol_table.leave_scope();
+    Ok(())
+}
+
+fn check_expression(symbol_table: &mut SymbolTable, expression: &mut ExpressionStatement) -> TypeCheckResult<TypeReference> {
+    match *expression {
+        ExpressionStatement::Literal(ref mut literal_expression) => check_literal_expression(symbol_table, literal_expression),
+        _ => Ok(TypeReference::new(0)), // TODO
+    }
+}
+
+fn check_literal_expression(symbol_table: &mut SymbolTable, literal_expression: &mut LiteralExpression) -> TypeCheckResult<TypeReference> {
+    let type_ref = match literal_expression.literal_expression_type {
+        LiteralType::Float => match symbol_table.find_type("f32") {
+            Some(f) => f,
+            None => return Err(TypeError::TypeNotFound("f32".to_string()))
+        },
+        LiteralType::Int => match symbol_table.find_type("i32") {
+            Some(f) => f,
+            None => return Err(TypeError::TypeNotFound("i32".to_string()))
+        },
+    };
+    literal_expression.literal_type = Type::Typed(type_ref.clone());
+    Ok(type_ref.clone())
 }
 
 #[cfg(test)]
@@ -172,6 +229,17 @@ mod tests {
     fn test_check_sampler() {
         let code = r#"
             sampler test: f32;
+        "#;
+
+        assert!(parse_module(code).is_ok());
+    }
+
+    #[test]
+    fn test_check_function() {
+        let code = r#"
+            fn add(x: f32, y: f32) -> f32 {
+                return x + y;
+            }
         "#;
 
         assert!(parse_module(code).is_ok());
