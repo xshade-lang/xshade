@@ -43,15 +43,15 @@ mod tests {
                 StructMemberDefinition {
                     struct_member_name: Identifier::from_str("position"),
                     struct_member_type_name: Identifier::from_str("vec3"),
-                    struct_member_type: Type::Free,
+                    struct_member_type: None,
                 },
                 StructMemberDefinition {
                     struct_member_name: Identifier::from_str("uv"),
                     struct_member_type_name: Identifier::from_str("vec2"),
-                    struct_member_type: Type::Free,
+                    struct_member_type: None,
                 },
             ],
-            declaring_type: Type::Free,
+            declaring_type: None,
         })];
 
         assert_eq!("#version 330\nstruct VS_IN {\n    vec3 position;\n    vec2 uv;\n}\n", render_glsl(&ast));

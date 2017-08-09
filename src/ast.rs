@@ -23,13 +23,6 @@ impl Identifier {
 type TypeIdentifier = Identifier;
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum Type {
-    Free,
-    Bound,
-    Typed(TypeReference),
-}
-
-#[derive(Debug, Eq, PartialEq)]
 pub enum ConstantVariant {
     Constant,
     Sampler,
@@ -40,7 +33,7 @@ pub struct ConstantDefinition {
     pub constant_name: Identifier,
     pub constant_variant: ConstantVariant,
     pub constant_type_name: TypeIdentifier,
-    pub constant_type: Type,
+    pub constant_type: Option<TypeReference>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -59,21 +52,21 @@ pub struct ProgramBindingDefinition {
 pub struct StructDefinition {
     pub struct_name: Identifier,
     pub struct_member: Vec<StructMemberDefinition>,
-    pub declaring_type: Type,
+    pub declaring_type: Option<TypeReference>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct StructMemberDefinition {
     pub struct_member_name: Identifier,
     pub struct_member_type_name: TypeIdentifier,
-    pub struct_member_type: Type,
+    pub struct_member_type: Option<TypeReference>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct FunctionArgumentDeclaration {
     pub argument_name: Identifier,
     pub argument_type_name: TypeIdentifier,
-    pub argument_type: Type,
+    pub argument_type: Option<TypeReference>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -82,21 +75,21 @@ pub struct FunctionDeclaration {
     pub arguments: Vec<FunctionArgumentDeclaration>,
     pub block: BlockDeclaration,
     pub return_type_name: TypeIdentifier,
-    pub return_type: Type,
+    pub return_type: Option<TypeReference>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct StructFieldInitializerExpression {
     pub struct_field_name: Identifier,
     pub initializer: Box<ExpressionStatement>,
-    pub struct_field_type: Type,
+    pub struct_field_type: Option<TypeReference>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct StructInstantiationExpression {
     pub struct_type_name: TypeIdentifier,
     pub struct_field_initializer: Vec<StructFieldInitializerExpression>,
-    pub struct_type: Type,
+    pub struct_type: Option<TypeReference>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -109,7 +102,7 @@ pub enum LiteralType {
 pub struct LiteralExpression {
     pub value: String,
     pub literal_expression_type: LiteralType,
-    pub literal_type: Type,
+    pub literal_type: Option<TypeReference>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -117,13 +110,13 @@ pub struct InfixExpression {
     pub operator: Operator,
     pub left_hand: Box<ExpressionStatement>,
     pub right_hand: Box<ExpressionStatement>,
-    pub infix_type: Type,
+    pub infix_type: Option<TypeReference>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct VariableExpression {
     pub variable_name: Identifier,
-    pub variable_type: Type,
+    pub variable_type: Option<TypeReference>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -153,13 +146,13 @@ pub enum ExpressionStatement {
 pub struct LocalDeclaration {
     pub symbol_name: Identifier,
     pub expression: ExpressionStatement,
-    pub local_type: Type,
+    pub local_type: Option<TypeReference>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ReturnDeclaration {
     pub expression: ExpressionStatement,
-    pub return_type: Type,
+    pub return_type: Option<TypeReference>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -188,7 +181,7 @@ pub struct BlockDeclaration {
 #[derive(Debug, Eq, PartialEq)]
 pub struct PrimitiveDeclaration {
     pub type_name: Identifier,
-    pub declaring_type: Type,
+    pub declaring_type: Option<TypeReference>,
 }
 
 #[derive(Debug, Eq, PartialEq)]

@@ -22,7 +22,7 @@ fn check_primitives(is_core_module: bool, type_environment: &mut TypeEnvironment
     for p in primitives.iter_mut() {
         let reference = try!(type_environment.create_type(&p.type_name.name));
         try!(symbol_table.add_global_type(&p.type_name.name, reference));
-        p.declaring_type = Type::Typed(reference);
+        p.declaring_type = Some(reference);
     }
     Ok(())
 }
@@ -32,13 +32,13 @@ fn check_structs(type_environment: &mut TypeEnvironment, symbol_table: &mut Symb
         try!(symbol_table.add_symbol(&s.struct_name.name));
         let reference = try!(type_environment.create_type(&s.struct_name.name));
         try!(symbol_table.add_type(&s.struct_name.name, reference));
-        s.declaring_type = Type::Typed(reference);
+        s.declaring_type = Some(reference);
     }
 
     for s in structs.iter_mut() {
         for member in s.struct_member.iter_mut() {
             let struct_member_type = try!(symbol_table.find_type_or_err(&member.struct_member_type_name.name));
-            member.struct_member_type = Type::Typed(struct_member_type);
+            member.struct_member_type = Some(struct_member_type);
         }
     }
     
@@ -76,7 +76,7 @@ fn check_constant(symbol_table: &mut SymbolTable, constants: &mut Vec<&mut Const
 
         let type_ref = try!(symbol_table.find_type_or_err(&s.constant_type_name.name));
         
-        s.constant_type = Type::Typed(type_ref.clone());
+        s.constant_type = Some(type_ref.clone());
         try!(symbol_table.resolve_symbol_type(&s.constant_name.name, type_ref.clone()))
     }
     Ok(())
@@ -87,12 +87,12 @@ fn check_functions(symbol_table: &mut SymbolTable, functions: &mut Vec<&mut Func
         symbol_table.enter_scope();
         for argument in f.arguments.iter_mut() {
             let type_ref = try!(symbol_table.find_type_or_err(&argument.argument_type_name.name));
-            argument.argument_type = Type::Typed(type_ref.clone());
+            argument.argument_type = Some(type_ref.clone());
             try!(symbol_table.add_symbol_with_type(&argument.argument_name.name, type_ref.clone()));
         }
 
         let type_ref = try!(symbol_table.find_type_or_err(&f.return_type_name.name));
-        f.return_type = Type::Typed(type_ref.clone());
+        f.return_type = Some(type_ref.clone());
 
         try!(check_block(symbol_table, &mut f.block));
         symbol_table.leave_scope();
@@ -106,12 +106,12 @@ fn check_block(symbol_table: &mut SymbolTable, block: &mut BlockDeclaration) -> 
         match *s {
             BlockStatement::Local(ref mut local_declaration) => {
                 let local_type = try!(check_expression(symbol_table, &mut local_declaration.expression));
-                local_declaration.local_type = Type::Typed(local_type.clone());
+                local_declaration.local_type = Some(local_type.clone());
                 try!(symbol_table.add_symbol_with_type(&local_declaration.symbol_name.name, local_type));
             },
             BlockStatement::Return(ref mut return_declaration) => {
                 let return_type = try!(check_expression(symbol_table, &mut return_declaration.expression));
-                return_declaration.return_type = Type::Typed(return_type);
+                return_declaration.return_type = Some(return_type);
             },
             BlockStatement::Expression(ref mut expression_statement) => {
                 try!(check_expression(symbol_table, expression_statement));
@@ -134,12 +134,12 @@ fn check_expression(symbol_table: &mut SymbolTable, expression: &mut ExpressionS
 
 fn check_struct_instatiation_expression(symbol_table: &mut SymbolTable, struct_instantiation_expression: &mut StructInstantiationExpression) -> TypeCheckResult<TypeReference> {
     let struct_type = try!(symbol_table.find_type_or_err(&struct_instantiation_expression.struct_type_name.name));
-    struct_instantiation_expression.struct_type = Type::Typed(struct_type);
+    struct_instantiation_expression.struct_type = Some(struct_type);
 
     for initializer in struct_instantiation_expression.struct_field_initializer.iter_mut() {
         // TODO check if initializer is same as or convertible to struct field type
         let initializer_type = try!(check_expression(symbol_table, &mut *initializer.initializer));
-        initializer.struct_field_type = Type::Typed(initializer_type);
+        initializer.struct_field_type = Some(initializer_type);
     }
 
     Ok(struct_type)
@@ -159,7 +159,7 @@ fn check_infix_expression(symbol_table: &mut SymbolTable, infix_expression: &mut
 
     // TODO check if operator is available
 
-    infix_expression.infix_type = Type::Typed(left_hand_type);
+    infix_expression.infix_type = Some(left_hand_type);
 
     Ok(left_hand_type)
 }
@@ -168,7 +168,7 @@ fn check_variable_expression(symbol_table: &mut SymbolTable, variable_expression
     match symbol_table.find_symbol(&variable_expression.variable_name.name) {
         Some(ref symbol) => match symbol.get_type() {
             Some(t) => {
-                variable_expression.variable_type = Type::Typed(t.clone());
+                variable_expression.variable_type = Some(t.clone());
                 return Ok(t);
             },
             None => return Err(TypeError::CannotInfer(variable_expression.variable_name.name.clone())),
@@ -182,7 +182,7 @@ fn check_literal_expression(symbol_table: &mut SymbolTable, literal_expression: 
         LiteralType::Float => try!(symbol_table.find_type_or_err("f32")),
         LiteralType::Int => try!(symbol_table.find_type_or_err("i32")),
     };
-    literal_expression.literal_type = Type::Typed(type_ref.clone());
+    literal_expression.literal_type = Some(type_ref.clone());
     Ok(type_ref.clone())
 }
 
