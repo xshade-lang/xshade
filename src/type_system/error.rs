@@ -11,6 +11,7 @@ pub enum TypeError {
     CastAlreadyDeclared(String, String),
     VariableNotFound(String),
     CannotInfer(String),
+    IncompatibleTypes(String, String),
 }
 
 impl fmt::Display for TypeError {
@@ -34,6 +35,9 @@ impl fmt::Display for TypeError {
             TypeError::CannotInfer(ref variable_name) => {
                 write!(f, "Cannot infer type for variable \"{}\".", variable_name)
             },
+            TypeError::IncompatibleTypes(ref left, ref right) => {
+                write!(f, "Incompatible types \"{}\" and \"{}\".", left, right)
+            },
         }
     }
 }
@@ -47,6 +51,7 @@ impl Error for TypeError {
             TypeError::CastAlreadyDeclared(_, _) => "Cast already declared.",
             TypeError::VariableNotFound(_) => "Unknown type.",
             TypeError::CannotInfer(_) => "Cannot infer type.",
+            TypeError::IncompatibleTypes(_, _) => "Incompatible types.",
         }
     }
 }

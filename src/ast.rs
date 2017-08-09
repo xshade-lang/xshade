@@ -89,12 +89,14 @@ pub struct FunctionDeclaration {
 pub struct StructFieldInitializerExpression {
     pub struct_field_name: Identifier,
     pub initializer: Box<ExpressionStatement>,
+    pub struct_field_type: Type,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct StructInstantiationExpression {
     pub struct_type_name: TypeIdentifier,
     pub struct_field_initializer: Vec<StructFieldInitializerExpression>,
+    pub struct_type: Type,
 }
 
 #[derive(Debug, Eq, PartialEq)]

@@ -98,6 +98,19 @@ impl SymbolTable {
         None
     }
 
+    pub fn find_type_or_err(&self, name: &str) -> TypeCheckResult<TypeReference> {
+        for scope in &self.scopes {
+            if scope.types.contains_key(name) {
+                match scope.types.get(name) {
+                    Some(t) => return Ok(t.clone()),
+                    None => return Err(TypeError::TypeNotFound(name.to_string())),
+                }
+            }
+        }
+
+        Err(TypeError::TypeNotFound(name.to_string()))
+    }
+
     pub fn add_symbol(&mut self, name: &str) -> TypeCheckResult<()> {
         if self.scopes[0].symbols.contains_key(name) {
             return Err(TypeError::SymbolNameAlreadyUsed(name.to_string()));

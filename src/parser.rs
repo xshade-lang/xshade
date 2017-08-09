@@ -135,6 +135,7 @@ named!(parse_struct_instantiation_field_initializer<&[u8], StructFieldInitialize
         (StructFieldInitializerExpression{
             struct_field_name: struct_field_name,
             initializer: Box::new(initializer),
+            struct_field_type: Type::Free,
         })
     )
 );
@@ -149,6 +150,7 @@ named!(parse_struct_instantiation<&[u8], ExpressionStatement>,
         (ExpressionStatement::StructInstantiation(StructInstantiationExpression{
             struct_type_name: struct_type_name,
             struct_field_initializer: struct_field_initializer,
+            struct_type: Type::Free,
         }))
     )
 );
@@ -728,6 +730,7 @@ mod tests {
                                     literal_expression_type: LiteralType::Int,
                                     literal_type: Type::Free,
                                 })),
+                                struct_field_type: Type::Free,
                             },
                             StructFieldInitializerExpression{
                                 struct_field_name: Identifier::from_str("b"),
@@ -736,8 +739,10 @@ mod tests {
                                     literal_expression_type: LiteralType::Int,
                                     literal_type: Type::Free,
                                 })),
+                                struct_field_type: Type::Free,
                             },
                         ],
+                        struct_type: Type::Free,
                     }),
                     local_type: Type::Free,
                 })
@@ -770,6 +775,7 @@ mod tests {
                                     literal_expression_type: LiteralType::Int,
                                     literal_type: Type::Free,
                                 })),
+                                struct_field_type: Type::Free,
                             },
                             StructFieldInitializerExpression{
                                 struct_field_name: Identifier::from_str("b"),
@@ -783,11 +789,15 @@ mod tests {
                                                 literal_expression_type: LiteralType::Int,
                                                 literal_type: Type::Free,
                                             })),
+                                            struct_field_type: Type::Free,
                                         },
                                     ],
+                                    struct_type: Type::Free,
                                 })),
+                                struct_field_type: Type::Free,
                             },
                         ],
+                        struct_type: Type::Free,
                     }),
                     local_type: Type::Free,
                 })
