@@ -76,6 +76,7 @@ pub struct FunctionDeclaration {
     pub block: BlockDeclaration,
     pub return_type_name: TypeIdentifier,
     pub return_type: Option<TypeReference>,
+    pub declaring_type: Option<TypeReference>,
 }
 
 #[derive(Debug, Eq, PartialEq)]

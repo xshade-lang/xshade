@@ -10,7 +10,7 @@ pub fn type_check(type_environment: &mut TypeEnvironment, symbol_table: &mut Sym
     try!(check_structs(type_environment, symbol_table, &mut module.find_structs_mut()));
     try!(check_casts(module.is_core(), type_environment, symbol_table, &mut module.find_casts_mut()));
     try!(check_constant(symbol_table, &mut module.find_constants_mut()));
-    try!(check_functions(symbol_table, &mut module.find_functions_mut()));
+    try!(check_functions(type_environment, symbol_table, &mut module.find_functions_mut()));
     symbol_table.leave_scope();
     Ok(())
 }
@@ -82,8 +82,10 @@ fn check_constant(symbol_table: &mut SymbolTable, constants: &mut Vec<&mut Const
     Ok(())
 }
 
-fn check_functions(symbol_table: &mut SymbolTable, functions: &mut Vec<&mut FunctionDeclaration>) -> TypeCheckResult<()> {
+fn check_functions(type_environment: &mut TypeEnvironment, symbol_table: &mut SymbolTable, functions: &mut Vec<&mut FunctionDeclaration>) -> TypeCheckResult<()> {
     for f in functions.iter_mut() {
+        let function_type = try!(type_environment.create_type(&f.function_name.name));
+        try!(symbol_table.add_symbol_with_type(&f.function_name.name, function_type));
         symbol_table.enter_scope();
         for argument in f.arguments.iter_mut() {
             let type_ref = try!(symbol_table.find_type_or_err(&argument.argument_type_name.name));

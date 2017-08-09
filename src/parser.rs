@@ -364,6 +364,7 @@ named!(parse_function<&[u8], ItemKind>,
             block: block,
             return_type_name: return_type_name,
             return_type: None,
+            declaring_type: None,
         }))
     )
 );
@@ -803,43 +804,45 @@ mod tests {
     fn parse_empty_function() {
         let code = "fn main() -> void {}";
         assert_eq!(parse_str(code),
-                   Ok(vec![ItemKind::Function(FunctionDeclaration {
-                                                  function_name: Identifier::from_str("main"),
-                                                  arguments: Vec::new(),
-                                                  block: BlockDeclaration {
-                                                      statements: Vec::new(),
-                                                  },
-                                                  return_type_name: Identifier::from_str("void"),
-                                                  return_type: None,
-                                              })]));
+            Ok(vec![ItemKind::Function(FunctionDeclaration {
+                function_name: Identifier::from_str("main"),
+                arguments: Vec::new(),
+                block: BlockDeclaration {
+                    statements: Vec::new(),
+                },
+                return_type_name: Identifier::from_str("void"),
+                return_type: None,
+                declaring_type: None,
+            })]));
     }
 
     #[test]
     fn parse_empty_function_with_arguments() {
         let code = "fn main(a: B, c: D) -> void {}";
         assert_eq!(parse_str(code),
-                   Ok(vec![ItemKind::Function(FunctionDeclaration {
-                                                  function_name: Identifier::from_str("main"),
-                                                  arguments: vec![FunctionArgumentDeclaration {
-                                                                      argument_name:
-                                                                          Identifier::from_str("a"),
-                                                                      argument_type_name:
-                                                                          Identifier::from_str("B"),
-                                                                      argument_type: None,
-                                                                  },
-                                                                  FunctionArgumentDeclaration {
-                                                                      argument_name:
-                                                                          Identifier::from_str("c"),
-                                                                      argument_type_name:
-                                                                          Identifier::from_str("D"),
-                                                                      argument_type: None,
-                                                                  }],
-                                                  block: BlockDeclaration {
-                                                      statements: Vec::new(),
-                                                  },
-                                                  return_type_name: Identifier::from_str("void"),
-                                                  return_type: None,
-                                              })]));
+            Ok(vec![ItemKind::Function(FunctionDeclaration {
+                function_name: Identifier::from_str("main"),
+                arguments: vec![FunctionArgumentDeclaration {
+                                    argument_name:
+                                        Identifier::from_str("a"),
+                                    argument_type_name:
+                                        Identifier::from_str("B"),
+                                    argument_type: None,
+                                },
+                                FunctionArgumentDeclaration {
+                                    argument_name:
+                                        Identifier::from_str("c"),
+                                    argument_type_name:
+                                        Identifier::from_str("D"),
+                                    argument_type: None,
+                                }],
+                block: BlockDeclaration {
+                    statements: Vec::new(),
+                },
+                return_type_name: Identifier::from_str("void"),
+                return_type: None,
+                declaring_type: None,
+            })]));
     }
 
     #[test]
@@ -867,10 +870,11 @@ mod tests {
                                 }
                             )
                         ],
-                                                  },
-                                                  return_type_name: Identifier::from_str("void"),
-                                                  return_type: None,
-                                              })]));
+                    },
+                    return_type_name: Identifier::from_str("void"),
+                    return_type: None,
+                    declaring_type: None,
+                })]));
     }
 
     #[test]
@@ -896,6 +900,7 @@ mod tests {
                                                   },
                                                   return_type_name: Identifier::from_str("void"),
                                                   return_type: None,
+                                                  declaring_type: None,
                                               })]));
     }
 
