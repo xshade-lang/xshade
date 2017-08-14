@@ -12,6 +12,8 @@ pub enum TypeError {
     VariableNotFound(String),
     CannotInfer(String),
     IncompatibleTypes(String, String),
+    CannotMakeCallable,
+    NotCallable,
 }
 
 impl fmt::Display for TypeError {
@@ -38,6 +40,12 @@ impl fmt::Display for TypeError {
             TypeError::IncompatibleTypes(ref left, ref right) => {
                 write!(f, "Incompatible types \"{}\" and \"{}\".", left, right)
             },
+            TypeError::CannotMakeCallable => {
+                write!(f, "Cannot make type callable.")
+            },
+            TypeError::NotCallable => {
+                write!(f, "Not callable.")
+            },
         }
     }
 }
@@ -52,6 +60,8 @@ impl Error for TypeError {
             TypeError::VariableNotFound(_) => "Unknown type.",
             TypeError::CannotInfer(_) => "Cannot infer type.",
             TypeError::IncompatibleTypes(_, _) => "Incompatible types.",
+            TypeError::CannotMakeCallable => "Cannot make type callable.",
+            TypeError::NotCallable => "Not callable.",
         }
     }
 }

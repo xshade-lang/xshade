@@ -246,6 +246,7 @@ named!(parse_call<&[u8], CallExpression>,
         (CallExpression {
             function_name: function_name,
             arguments: arguments,
+            function_type: None,
         })
     )
 );
@@ -585,6 +586,7 @@ mod tests {
                         CallExpression{
                             function_name: Identifier::from_str("test"),
                             arguments: Vec::new(),
+                            function_type: None,
                         }
                     )
                 )
@@ -608,6 +610,7 @@ mod tests {
                             variable_type: None,
                         })
                     ],
+                    function_type: None,
                 }))
             ]));
     }
@@ -622,6 +625,7 @@ mod tests {
                     expression: ExpressionStatement::Call(CallExpression{
                         function_name: Identifier::from_str("test"),
                         arguments: Vec::new(),
+                        function_type: None,
                     }),
                     local_type: None,
                 })

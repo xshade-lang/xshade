@@ -1,6 +1,7 @@
 use ::std::collections::HashMap;
 use ::type_system::error::{ TypeError, TypeCheckResult };
-use ::type_system::type_environment::TypeReference;
+use ::type_system::type_definition::TypeDefinition;
+use ::type_system::type_environment::{ TypeEnvironment, TypeReference };
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum SymbolState {
@@ -57,12 +58,14 @@ impl Scope {
 #[derive(Debug)]
 pub struct SymbolTable {
     scopes: Vec<Scope>,
+    types: TypeEnvironment,
 }
 
 impl SymbolTable {
-    pub fn new() -> SymbolTable {
+    pub fn new(types: TypeEnvironment) -> SymbolTable {
         SymbolTable {
             scopes: vec![Scope::new()],
+            types: types,
         }
     }
 
@@ -85,20 +88,46 @@ impl SymbolTable {
         Ok(())
     }
 
-    pub fn find_type(&self, name: &str) -> Option<TypeReference> {
-        for scope in &self.scopes {
-            if scope.types.contains_key(name) {
-                match scope.types.get(name) {
-                    Some(t) => return Some(t.clone()),
-                    None => return None,
-                }
-            }
+    pub fn create_type(&mut self, name: &str) -> TypeCheckResult<TypeReference> {
+        if self.scopes[0].types.contains_key(name) {
+            return Err(TypeError::SymbolNameAlreadyUsed(name.to_string()));
         }
 
-        None
+        let type_ref = try!(self.types.create_type(name));
+
+        self.scopes[0].types.insert(name.to_string(), type_ref);
+        Ok(type_ref)
     }
 
-    pub fn find_type_or_err(&self, name: &str) -> TypeCheckResult<TypeReference> {
+    pub fn create_global_type(&mut self, name: &str) -> TypeCheckResult<TypeReference> {
+        let root = self.scopes.len() - 1;
+        if self.scopes[root].types.contains_key(name) {
+            return Err(TypeError::SymbolNameAlreadyUsed(name.to_string()));
+        }
+
+        let type_ref = try!(self.types.create_type(name));
+
+        self.scopes[root].types.insert(name.to_string(), type_ref);
+        Ok(type_ref)
+    }
+
+    pub fn find_type(&self, type_ref: TypeReference) -> Option<&TypeDefinition> {
+        self.types.find_type(type_ref)
+    }
+
+    pub fn find_type_or_err(&self, type_ref: TypeReference) -> TypeCheckResult<&TypeDefinition> {
+        self.types.find_type_or_err(type_ref)
+    }
+
+    pub fn find_type_mut(&mut self, type_ref: TypeReference) -> Option<&mut TypeDefinition> {
+        self.types.find_type_mut(type_ref)
+    }
+
+    pub fn find_type_mut_or_err(&mut self, type_ref: TypeReference) -> TypeCheckResult<&mut TypeDefinition> {
+        self.types.find_type_mut_or_err(type_ref)
+    }
+
+    pub fn find_type_ref_or_err(&self, name: &str) -> TypeCheckResult<TypeReference> {
         for scope in &self.scopes {
             if scope.types.contains_key(name) {
                 match scope.types.get(name) {
@@ -178,7 +207,7 @@ mod tests {
 
     #[test]
     fn add_and_find_symbol() {
-        let mut symbols = SymbolTable::new();
+        let mut symbols = SymbolTable::new(TypeEnvironment::new());
 
         symbols.add_symbol("test_symbol").unwrap();
 
@@ -187,7 +216,7 @@ mod tests {
 
     #[test]
     fn enter_and_leave_scope() {
-        let mut symbols = SymbolTable::new();
+        let mut symbols = SymbolTable::new(TypeEnvironment::new());
 
         symbols.enter_scope();
         symbols.leave_scope();
@@ -195,7 +224,7 @@ mod tests {
 
     #[test]
     fn add_enter_then_find_symbol() {
-        let mut symbols = SymbolTable::new();
+        let mut symbols = SymbolTable::new(TypeEnvironment::new());
         symbols.add_symbol("test_symbol").unwrap();
         symbols.enter_scope();
 
@@ -204,7 +233,7 @@ mod tests {
 
     #[test]
     fn enter_add_leave_then_dont_find_symbol() {
-        let mut symbols = SymbolTable::new();
+        let mut symbols = SymbolTable::new(TypeEnvironment::new());
         symbols.enter_scope();
         symbols.add_symbol("test_symbol").unwrap();
         symbols.leave_scope();
@@ -214,14 +243,14 @@ mod tests {
 
     #[test]
     fn cannot_leave_root_scope() {
-        let mut symbols = SymbolTable::new();
+        let mut symbols = SymbolTable::new(TypeEnvironment::new());
         symbols.leave_scope();
     }
 
     #[test]
     fn add_type() {
         let reference = TypeReference::new(0);
-        let mut symbols = SymbolTable::new();
+        let mut symbols = SymbolTable::new(TypeEnvironment::new());
         symbols.add_type("f32", reference);
     }
 }

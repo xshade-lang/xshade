@@ -51,6 +51,15 @@ impl TypeEnvironment {
         Some(&self.types[id])
     }
 
+    pub fn find_type_or_err(&self, reference: TypeReference) -> TypeCheckResult<&TypeDefinition> {
+        let id = reference.get_id();
+        if id >= self.types.len() {
+            return Err(TypeError::TypeNotFound("".to_string()));
+        }
+
+        Ok(&self.types[id])
+    }
+
     pub fn find_type_mut(&mut self, reference: TypeReference) -> Option<&mut TypeDefinition> {
         let id = reference.get_id();
         if id >= self.types.len() {
@@ -58,6 +67,15 @@ impl TypeEnvironment {
         }
 
         Some(&mut self.types[id])
+    }
+
+    pub fn find_type_mut_or_err(&mut self, reference: TypeReference) -> TypeCheckResult<&mut TypeDefinition> {
+        let id = reference.get_id();
+        if id >= self.types.len() {
+            return Err(TypeError::TypeNotFound("".to_string()));
+        }
+
+        Ok(&mut self.types[id])
     }
 
     pub fn find_reference_by_name(&self, name: &str) -> Option<TypeReference> {

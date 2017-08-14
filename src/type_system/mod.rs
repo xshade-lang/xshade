@@ -1,3 +1,4 @@
+pub mod call_signature;
 pub mod error;
 pub mod symbol_table;
 pub mod type_environment;

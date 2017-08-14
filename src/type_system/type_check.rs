@@ -1,43 +1,42 @@
 use ::ast::*;
 use ::module::Module;
+use ::type_system::call_signature::CallSignature;
 use ::type_system::error::{ TypeError, TypeCheckResult };
 use ::type_system::symbol_table::SymbolTable;
-use ::type_system::type_environment::{ TypeEnvironment, TypeReference };
+use ::type_system::type_environment::{ TypeReference };
 
-pub fn type_check(type_environment: &mut TypeEnvironment, symbol_table: &mut SymbolTable, module: &mut Module) -> TypeCheckResult<()> {
+pub fn type_check(symbol_table: &mut SymbolTable, module: &mut Module) -> TypeCheckResult<()> {
     symbol_table.enter_scope();
-    try!(check_primitives(module.is_core(), type_environment, symbol_table, &mut module.find_primitives_mut()));
-    try!(check_structs(type_environment, symbol_table, &mut module.find_structs_mut()));
-    try!(check_casts(module.is_core(), type_environment, symbol_table, &mut module.find_casts_mut()));
+    try!(check_primitives(module.is_core(), symbol_table, &mut module.find_primitives_mut()));
+    try!(check_structs(symbol_table, &mut module.find_structs_mut()));
+    try!(check_casts(module.is_core(), symbol_table, &mut module.find_casts_mut()));
     try!(check_constant(symbol_table, &mut module.find_constants_mut()));
-    try!(check_functions(type_environment, symbol_table, &mut module.find_functions_mut()));
+    try!(check_functions(symbol_table, &mut module.find_functions_mut()));
     symbol_table.leave_scope();
     Ok(())
 }
 
-fn check_primitives(is_core_module: bool, type_environment: &mut TypeEnvironment, symbol_table: &mut SymbolTable, primitives: &mut Vec<&mut PrimitiveDeclaration>) -> TypeCheckResult<()> {
+fn check_primitives(is_core_module: bool, symbol_table: &mut SymbolTable, primitives: &mut Vec<&mut PrimitiveDeclaration>) -> TypeCheckResult<()> {
     if !is_core_module && primitives.len() > 0 {
         return Err(TypeError::SyntaxOnlyValidInCoreModule)
     }
     for p in primitives.iter_mut() {
-        let reference = try!(type_environment.create_type(&p.type_name.name));
-        try!(symbol_table.add_global_type(&p.type_name.name, reference));
-        p.declaring_type = Some(reference);
+        let type_ref = try!(symbol_table.create_global_type(&p.type_name.name));
+        p.declaring_type = Some(type_ref);
     }
     Ok(())
 }
 
-fn check_structs(type_environment: &mut TypeEnvironment, symbol_table: &mut SymbolTable, structs: &mut Vec<&mut StructDefinition>) -> TypeCheckResult<()> {
+fn check_structs(symbol_table: &mut SymbolTable, structs: &mut Vec<&mut StructDefinition>) -> TypeCheckResult<()> {
     for s in structs.iter_mut() {
-        try!(symbol_table.add_symbol(&s.struct_name.name));
-        let reference = try!(type_environment.create_type(&s.struct_name.name));
-        try!(symbol_table.add_type(&s.struct_name.name, reference));
-        s.declaring_type = Some(reference);
+        let type_ref = try!(symbol_table.create_type(&s.struct_name.name));
+        try!(symbol_table.add_symbol_with_type(&s.struct_name.name, type_ref));
+        s.declaring_type = Some(type_ref);
     }
 
     for s in structs.iter_mut() {
         for member in s.struct_member.iter_mut() {
-            let struct_member_type = try!(symbol_table.find_type_or_err(&member.struct_member_type_name.name));
+            let struct_member_type = try!(symbol_table.find_type_ref_or_err(&member.struct_member_type_name.name));
             member.struct_member_type = Some(struct_member_type);
         }
     }
@@ -45,15 +44,15 @@ fn check_structs(type_environment: &mut TypeEnvironment, symbol_table: &mut Symb
     Ok(())
 }
 
-fn check_casts(is_core_module: bool, type_environment: &mut TypeEnvironment, symbol_table: &mut SymbolTable, casts: &mut Vec<&mut CastDeclaration>) -> TypeCheckResult<()> {
+fn check_casts(is_core_module: bool, symbol_table: &mut SymbolTable, casts: &mut Vec<&mut CastDeclaration>) -> TypeCheckResult<()> {
     if !is_core_module && casts.len() > 0 {
         return Err(TypeError::SyntaxOnlyValidInCoreModule)
     }
     for c in casts.iter_mut() {
-        let source_type = try!(symbol_table.find_type_or_err(&c.source_type.name));
-        let target_type = try!(symbol_table.find_type_or_err(&c.target_type.name));
+        let source_type = try!(symbol_table.find_type_ref_or_err(&c.source_type.name));
+        let target_type = try!(symbol_table.find_type_ref_or_err(&c.target_type.name));
 
-        let mut source_type = match type_environment.find_type_mut(source_type.clone()) {
+        let mut source_type = match symbol_table.find_type_mut(source_type) {
             Some(t) => t,
             None => return Err(TypeError::TypeNotFound(c.source_type.name.clone()))
         };
@@ -63,8 +62,8 @@ fn check_casts(is_core_module: bool, type_environment: &mut TypeEnvironment, sym
         }
 
         match c.cast_type {
-            CastType::Implicit => source_type.add_implicit_cast(&target_type),
-            CastType::Explicit => source_type.add_explicit_cast(&target_type),
+            CastType::Implicit => source_type.add_implicit_cast(target_type),
+            CastType::Explicit => source_type.add_explicit_cast(target_type),
         }
     }
     Ok(())
@@ -74,7 +73,7 @@ fn check_constant(symbol_table: &mut SymbolTable, constants: &mut Vec<&mut Const
     for s in constants.iter_mut() {
         try!(symbol_table.add_symbol(&s.constant_name.name));
 
-        let type_ref = try!(symbol_table.find_type_or_err(&s.constant_type_name.name));
+        let type_ref = try!(symbol_table.find_type_ref_or_err(&s.constant_type_name.name));
         
         s.constant_type = Some(type_ref.clone());
         try!(symbol_table.resolve_symbol_type(&s.constant_name.name, type_ref.clone()))
@@ -82,19 +81,25 @@ fn check_constant(symbol_table: &mut SymbolTable, constants: &mut Vec<&mut Const
     Ok(())
 }
 
-fn check_functions(type_environment: &mut TypeEnvironment, symbol_table: &mut SymbolTable, functions: &mut Vec<&mut FunctionDeclaration>) -> TypeCheckResult<()> {
+fn check_functions(symbol_table: &mut SymbolTable, functions: &mut Vec<&mut FunctionDeclaration>) -> TypeCheckResult<()> {
     for f in functions.iter_mut() {
-        let function_type = try!(type_environment.create_type(&f.function_name.name));
+        let function_type = try!(symbol_table.create_type(&f.function_name.name));
         try!(symbol_table.add_symbol_with_type(&f.function_name.name, function_type));
+
+        let mut arguments = Vec::new();
         symbol_table.enter_scope();
         for argument in f.arguments.iter_mut() {
-            let type_ref = try!(symbol_table.find_type_or_err(&argument.argument_type_name.name));
-            argument.argument_type = Some(type_ref.clone());
-            try!(symbol_table.add_symbol_with_type(&argument.argument_name.name, type_ref.clone()));
+            let type_ref = try!(symbol_table.find_type_ref_or_err(&argument.argument_type_name.name));
+            argument.argument_type = Some(type_ref);
+            try!(symbol_table.add_symbol_with_type(&argument.argument_name.name, type_ref));
+            arguments.push(type_ref);
         }
 
-        let type_ref = try!(symbol_table.find_type_or_err(&f.return_type_name.name));
+        let type_ref = try!(symbol_table.find_type_ref_or_err(&f.return_type_name.name));
         f.return_type = Some(type_ref.clone());
+
+        let signature = CallSignature::new(arguments, Some(type_ref));
+        try!(try!(symbol_table.find_type_mut_or_err(function_type)).make_callable(signature));
 
         try!(check_block(symbol_table, &mut f.block));
         symbol_table.leave_scope();
@@ -130,12 +135,29 @@ fn check_expression(symbol_table: &mut SymbolTable, expression: &mut ExpressionS
         ExpressionStatement::Variable(ref mut variable_expression) => check_variable_expression(symbol_table, variable_expression),
         ExpressionStatement::Infix(ref mut infix_expression) => check_infix_expression(symbol_table, infix_expression),
         ExpressionStatement::StructInstantiation(ref mut struct_instantiation_expression) => check_struct_instatiation_expression(symbol_table, struct_instantiation_expression),
+        ExpressionStatement::Call(ref mut call_expression) => check_call_expression(symbol_table, call_expression),
         _ => Ok(TypeReference::new(0)), // TODO implement remaining expressions
     }
 }
 
+fn check_call_expression(symbol_table: &mut SymbolTable, call_expression: &mut CallExpression) -> TypeCheckResult<TypeReference> {
+    let function_type_ref = try!(symbol_table.find_type_ref_or_err(&call_expression.function_name.name));
+
+    let mut argument_types = Vec::new();
+    for argument in call_expression.arguments.iter_mut() {
+        argument_types.push(try!(check_expression(symbol_table, argument)));
+    }
+
+    let function_type = try!(symbol_table.find_type_or_err(function_type_ref));
+    try!(function_type.get_call_signature_or_err()).match_arguments(argument_types);
+
+    // TODO
+
+    Ok(TypeReference::new(0))
+}
+
 fn check_struct_instatiation_expression(symbol_table: &mut SymbolTable, struct_instantiation_expression: &mut StructInstantiationExpression) -> TypeCheckResult<TypeReference> {
-    let struct_type = try!(symbol_table.find_type_or_err(&struct_instantiation_expression.struct_type_name.name));
+    let struct_type = try!(symbol_table.find_type_ref_or_err(&struct_instantiation_expression.struct_type_name.name));
     struct_instantiation_expression.struct_type = Some(struct_type);
 
     for initializer in struct_instantiation_expression.struct_field_initializer.iter_mut() {
@@ -181,8 +203,8 @@ fn check_variable_expression(symbol_table: &mut SymbolTable, variable_expression
 
 fn check_literal_expression(symbol_table: &mut SymbolTable, literal_expression: &mut LiteralExpression) -> TypeCheckResult<TypeReference> {
     let type_ref = match literal_expression.literal_expression_type {
-        LiteralType::Float => try!(symbol_table.find_type_or_err("f32")),
-        LiteralType::Int => try!(symbol_table.find_type_or_err("i32")),
+        LiteralType::Float => try!(symbol_table.find_type_ref_or_err("f32")),
+        LiteralType::Int => try!(symbol_table.find_type_ref_or_err("i32")),
     };
     literal_expression.literal_type = Some(type_ref.clone());
     Ok(type_ref.clone())
@@ -297,6 +319,10 @@ mod tests {
                     z: z,
                     w: w,
                 };
+            }
+
+            fn main() -> Vec4 {
+                return vec4(0.0, 0.0, 0.0, 0.0);
             }
         "#;
 

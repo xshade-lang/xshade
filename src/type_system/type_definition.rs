@@ -1,4 +1,5 @@
-use ::ast::*;
+use ::type_system::call_signature::CallSignature;
+use ::type_system::error::{ TypeError, TypeCheckResult };
 use ::type_system::type_environment::TypeReference;
 
 #[derive(Debug, Eq)]
@@ -7,6 +8,8 @@ pub struct TypeDefinition {
     name: String,
     implicit_casts: Vec<TypeReference>,
     explicit_casts: Vec<TypeReference>,
+
+    call_signature: Option<CallSignature>,
 }
 
 impl TypeDefinition {
@@ -16,6 +19,37 @@ impl TypeDefinition {
             name: name.to_string(),
             implicit_casts: Vec::new(),
             explicit_casts: Vec::new(),
+            call_signature: None,
+        }
+    }
+
+    pub fn make_callable(&mut self, signature: CallSignature) -> TypeCheckResult<()> {
+        if self.is_callable() {
+            return Err(TypeError::CannotMakeCallable);
+        }
+
+        self.call_signature = Some(signature);
+        Ok(())
+    }
+
+    pub fn get_call_signature(&self) -> Option<&CallSignature> {
+        match self.call_signature {
+            Some(ref s) => Some(s),
+            None => None,
+        }
+    }
+
+    pub fn get_call_signature_or_err(&self) -> TypeCheckResult<&CallSignature> {
+        match self.call_signature {
+            Some(ref s) => Ok(s),
+            None => Err(TypeError::NotCallable),
+        }
+    }
+
+    pub fn is_callable(&self) -> bool {
+        match self.call_signature {
+            Some(_) => true,
+            None => false,
         }
     }
 
@@ -32,12 +66,12 @@ impl TypeDefinition {
         self.explicit_casts.iter().any(|&t| t == other)
     }
 
-    pub fn add_implicit_cast(&mut self, other: &TypeReference) {
-        self.implicit_casts.push(other.clone());
+    pub fn add_implicit_cast(&mut self, other: TypeReference) {
+        self.implicit_casts.push(other);
     }
 
-    pub fn add_explicit_cast(&mut self, other: &TypeReference) {
-        self.explicit_casts.push(other.clone());
+    pub fn add_explicit_cast(&mut self, other: TypeReference) {
+        self.explicit_casts.push(other);
     }
 }
 

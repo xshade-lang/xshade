@@ -160,6 +160,7 @@ pub struct ReturnDeclaration {
 pub struct CallExpression {
     pub function_name: Identifier,
     pub arguments: Vec<ExpressionStatement>,
+    pub function_type: Option<TypeReference>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
