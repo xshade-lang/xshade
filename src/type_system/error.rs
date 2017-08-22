@@ -14,6 +14,7 @@ pub enum TypeError {
     IncompatibleTypes(String, String),
     CannotMakeCallable,
     NotCallable,
+    IncompatibleArguments,
 }
 
 impl fmt::Display for TypeError {
@@ -46,6 +47,9 @@ impl fmt::Display for TypeError {
             TypeError::NotCallable => {
                 write!(f, "Not callable.")
             },
+            TypeError::IncompatibleArguments => {
+                write!(f, "Arguments incompatible.")
+            },
         }
     }
 }
@@ -62,6 +66,7 @@ impl Error for TypeError {
             TypeError::IncompatibleTypes(_, _) => "Incompatible types.",
             TypeError::CannotMakeCallable => "Cannot make type callable.",
             TypeError::NotCallable => "Not callable.",
+            TypeError::IncompatibleArguments => "Arguments incompatible.",
         }
     }
 }

@@ -10,6 +10,7 @@ pub struct TypeDefinition {
     explicit_casts: Vec<TypeReference>,
 
     call_signature: Option<CallSignature>,
+    member: Option<Vec<TypeReference>>,
 }
 
 impl TypeDefinition {
@@ -20,7 +21,25 @@ impl TypeDefinition {
             implicit_casts: Vec::new(),
             explicit_casts: Vec::new(),
             call_signature: None,
+            member: None,
         }
+    }
+
+    pub fn has_member(&self) -> bool {
+        match self.member {
+            Some(_) => true,
+            None => false,
+        }
+    }
+
+    pub fn set_members(&mut self, members: Vec<TypeReference>) -> TypeCheckResult<()> {
+        if self.has_member() {
+            // TODO error if already set
+        }
+
+        self.member = Some(members);
+
+        Ok(())
     }
 
     pub fn make_callable(&mut self, signature: CallSignature) -> TypeCheckResult<()> {

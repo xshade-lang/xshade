@@ -260,6 +260,7 @@ named!(parse_field_accessor_expression<&[u8], ExpressionStatement>,
         (ExpressionStatement::FieldAccessor(FieldAccessorExpression{
             variable_name: variable_name,
             field_name: field_name,
+            field_type: None,
         }))
     )
 );

@@ -124,6 +124,7 @@ pub struct VariableExpression {
 pub struct FieldAccessorExpression {
     pub variable_name: Identifier,
     pub field_name: Identifier,
+    pub field_type: Option<TypeReference>,
 }
 
 #[derive(Debug, Eq, PartialEq)]

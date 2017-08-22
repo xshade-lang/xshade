@@ -35,10 +35,14 @@ fn check_structs(symbol_table: &mut SymbolTable, structs: &mut Vec<&mut StructDe
     }
 
     for s in structs.iter_mut() {
+        let mut member_list = Vec::new();
         for member in s.struct_member.iter_mut() {
             let struct_member_type = try!(symbol_table.find_type_ref_or_err(&member.struct_member_type_name.name));
             member.struct_member_type = Some(struct_member_type);
+            member_list.push(struct_member_type);
         }
+        let mut t = try!(symbol_table.find_type_mut_or_err(s.declaring_type.unwrap())); //TODO ugly unwrap
+        try!(t.set_members(member_list));
     }
     
     Ok(())
@@ -136,7 +140,21 @@ fn check_expression(symbol_table: &mut SymbolTable, expression: &mut ExpressionS
         ExpressionStatement::Infix(ref mut infix_expression) => check_infix_expression(symbol_table, infix_expression),
         ExpressionStatement::StructInstantiation(ref mut struct_instantiation_expression) => check_struct_instatiation_expression(symbol_table, struct_instantiation_expression),
         ExpressionStatement::Call(ref mut call_expression) => check_call_expression(symbol_table, call_expression),
+        ExpressionStatement::FieldAccessor(ref mut field_accessor_expression) => check_field_accessor_expression(symbol_table, field_accessor_expression),
         _ => Ok(TypeReference::new(0)), // TODO implement remaining expressions
+    }
+}
+
+fn check_field_accessor_expression(symbol_table: &mut SymbolTable, field_accessor_expression: &mut FieldAccessorExpression) -> TypeCheckResult<TypeReference> {
+    match symbol_table.find_symbol(&field_accessor_expression.variable_name.name) {
+        Some(symbol) => match symbol.get_type() {
+            Some(t) => {
+                field_accessor_expression.field_type = Some(t);
+                return Ok(t);
+            },
+            None => return Err(TypeError::CannotInfer(field_accessor_expression.variable_name.name.clone())),
+        },
+        None => Err(TypeError::VariableNotFound(field_accessor_expression.variable_name.name.clone())),
     }
 }
 
@@ -149,11 +167,12 @@ fn check_call_expression(symbol_table: &mut SymbolTable, call_expression: &mut C
     }
 
     let function_type = try!(symbol_table.find_type_or_err(function_type_ref));
-    try!(function_type.get_call_signature_or_err()).match_arguments(argument_types);
+    let signature = try!(function_type.get_call_signature_or_err());
+    try!(signature.match_arguments_or_err(argument_types));
 
-    // TODO
+    let return_type = signature.get_return_type().unwrap(); // TODO void types
 
-    Ok(TypeReference::new(0))
+    Ok(return_type)
 }
 
 fn check_struct_instatiation_expression(symbol_table: &mut SymbolTable, struct_instantiation_expression: &mut StructInstantiationExpression) -> TypeCheckResult<TypeReference> {
@@ -161,6 +180,7 @@ fn check_struct_instatiation_expression(symbol_table: &mut SymbolTable, struct_i
     struct_instantiation_expression.struct_type = Some(struct_type);
 
     for initializer in struct_instantiation_expression.struct_field_initializer.iter_mut() {
+        // TODO check if all struct fields are assigned
         // TODO check if initializer is same as or convertible to struct field type
         let initializer_type = try!(check_expression(symbol_table, &mut *initializer.initializer));
         initializer.struct_field_type = Some(initializer_type);
@@ -192,7 +212,7 @@ fn check_variable_expression(symbol_table: &mut SymbolTable, variable_expression
     match symbol_table.find_symbol(&variable_expression.variable_name.name) {
         Some(ref symbol) => match symbol.get_type() {
             Some(t) => {
-                variable_expression.variable_type = Some(t.clone());
+                variable_expression.variable_type = Some(t);
                 return Ok(t);
             },
             None => return Err(TypeError::CannotInfer(variable_expression.variable_name.name.clone())),

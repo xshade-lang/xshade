@@ -1,4 +1,5 @@
 use ::type_system::type_environment::TypeReference;
+use ::type_system::error::{ TypeError, TypeCheckResult };
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct CallSignature {
@@ -18,8 +19,23 @@ impl CallSignature {
         self.arguments == arguments
     }
 
+    pub fn match_arguments_or_err(&self, arguments: Vec<TypeReference>) -> TypeCheckResult<()> {
+        if self.arguments == arguments {
+            Ok(())
+        }else{
+            Err(TypeError::IncompatibleArguments)
+        }
+    }
+
     pub fn match_return_type(&self, return_type: Option<TypeReference>) -> bool {
         self.return_type == return_type
+    }
+
+    pub fn get_return_type(&self) -> Option<TypeReference> {
+        match self.return_type {
+            Some(t) => Some(t),
+            None => None,
+        }
     }
 }
 
