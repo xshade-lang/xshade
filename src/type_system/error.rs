@@ -9,6 +9,14 @@ pub enum TypeError {
     SymbolNameAlreadyUsed(String),
     SyntaxOnlyValidInCoreModule,
     CastAlreadyDeclared(String, String),
+    VariableNotFound(String),
+    CannotInfer(String),
+    IncompatibleTypes(String, String),
+    CannotMakeCallable,
+    NotCallable,
+    IncompatibleArguments,
+    TypeHasNoMember,
+    CannotInstantiateStructWithArguments,
 }
 
 impl fmt::Display for TypeError {
@@ -26,6 +34,30 @@ impl fmt::Display for TypeError {
             TypeError::CastAlreadyDeclared(ref from, ref to) => {
                 write!(f, "Cast from \"{}\" to \"{}\" already declared.", from, to)
             },
+            TypeError::VariableNotFound(ref variable_name) => {
+                write!(f, "Unknown variable \"{}\".", variable_name)
+            },
+            TypeError::CannotInfer(ref variable_name) => {
+                write!(f, "Cannot infer type for variable \"{}\".", variable_name)
+            },
+            TypeError::IncompatibleTypes(ref left, ref right) => {
+                write!(f, "Incompatible types \"{}\" and \"{}\".", left, right)
+            },
+            TypeError::CannotMakeCallable => {
+                write!(f, "Cannot make type callable.")
+            },
+            TypeError::NotCallable => {
+                write!(f, "Not callable.")
+            },
+            TypeError::IncompatibleArguments => {
+                write!(f, "Arguments incompatible.")
+            },
+            TypeError::TypeHasNoMember => {
+                write!(f, "Type has no member.")
+            },
+            TypeError::CannotInstantiateStructWithArguments => {
+                write!(f, "Cannot instantiate structure with given arguments.")
+            },
         }
     }
 }
@@ -37,6 +69,14 @@ impl Error for TypeError {
             TypeError::SymbolNameAlreadyUsed(_) => "Symbol name already declared.",
             TypeError::SyntaxOnlyValidInCoreModule => "Syntax only valid in core module.",
             TypeError::CastAlreadyDeclared(_, _) => "Cast already declared.",
+            TypeError::VariableNotFound(_) => "Unknown type.",
+            TypeError::CannotInfer(_) => "Cannot infer type.",
+            TypeError::IncompatibleTypes(_, _) => "Incompatible types.",
+            TypeError::CannotMakeCallable => "Cannot make type callable.",
+            TypeError::NotCallable => "Not callable.",
+            TypeError::IncompatibleArguments => "Arguments incompatible.",
+            TypeError::TypeHasNoMember => "Type has no member.",
+            TypeError::CannotInstantiateStructWithArguments => "Cannot instantiate structure with given arguments.",
         }
     }
 }
