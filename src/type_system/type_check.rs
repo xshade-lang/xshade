@@ -180,11 +180,26 @@ fn check_struct_instatiation_expression(symbol_table: &mut SymbolTable, struct_i
     let struct_type = try!(symbol_table.find_type_ref_or_err(&struct_instantiation_expression.struct_type_name.name));
     struct_instantiation_expression.struct_type = Some(struct_type);
 
+    let mut x = Vec::new();
     for initializer in struct_instantiation_expression.struct_field_initializer.iter_mut() {
         // TODO check if all struct fields are assigned
         // TODO check if initializer is same as or convertible to struct field type
         let initializer_type = try!(check_expression(symbol_table, &mut *initializer.initializer));
         initializer.struct_field_type = Some(initializer_type);
+        x.push(StructureMember::new(initializer.struct_field_name.name.clone(), initializer_type));
+    }
+    match symbol_table.find_type(struct_type) {
+        Some(t) => match t.get_member() {
+            Some(m) => {
+                if !m.is_assignable_with(x) {
+                    return Err(TypeError::CannotInstantiateStructWithArguments);
+                }
+            },
+            None => {
+                return Err(TypeError::TypeHasNoMember);
+            }
+        },
+        None => return Err(TypeError::TypeNotFound(struct_instantiation_expression.struct_type_name.name.clone())),
     }
 
     Ok(struct_type)
@@ -348,5 +363,58 @@ mod tests {
         "#;
 
         assert!(parse_module(code).is_ok());
+    }
+
+    #[test]
+    fn test_create_struct_wrong_number_of_arguments() {
+        let code = r#"
+            struct Vec4 {
+                x: f32,
+                y: f32,
+                z: f32,
+                w: f32,
+            }
+
+            fn vec4(x: f32, y: f32, z: f32, w: f32) -> Vec4 {
+                return Vec4 {
+                    x: x,
+                    y: y,
+                    z: z,
+                };
+            }
+
+            fn main() -> Vec4 {
+                return vec4(0.0, 0.0, 0.0, 0.0);
+            }
+        "#;
+
+        assert!(parse_module(code).is_err());
+    }
+
+    #[test]
+    fn test_create_struct_wrong_types() {
+        let code = r#"
+            struct Vec4 {
+                x: f32,
+                y: f32,
+                z: f32,
+                w: f32,
+            }
+
+            fn vec4(x: f32, y: f32, z: f32, w: f64) -> Vec4 {
+                return Vec4 {
+                    x: x,
+                    y: y,
+                    z: z,
+                    w: w,
+                };
+            }
+
+            fn main() -> Vec4 {
+                return vec4(0.0, 0.0, 0.0, 0.0);
+            }
+        "#;
+
+        assert!(parse_module(code).is_err());
     }
 }

@@ -34,6 +34,13 @@ impl TypeDefinition {
         }
     }
 
+    pub fn get_member(&self) -> Option<&StructureMembers> {
+        match self.member {
+            Some(ref m) => Some(&m),
+            None => None,
+        }
+    }
+
     pub fn set_members(&mut self, members: StructureMembers) -> TypeCheckResult<()> {
         if self.has_member() {
             // TODO error if already set

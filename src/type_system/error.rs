@@ -15,6 +15,8 @@ pub enum TypeError {
     CannotMakeCallable,
     NotCallable,
     IncompatibleArguments,
+    TypeHasNoMember,
+    CannotInstantiateStructWithArguments,
 }
 
 impl fmt::Display for TypeError {
@@ -50,6 +52,12 @@ impl fmt::Display for TypeError {
             TypeError::IncompatibleArguments => {
                 write!(f, "Arguments incompatible.")
             },
+            TypeError::TypeHasNoMember => {
+                write!(f, "Type has no member.")
+            },
+            TypeError::CannotInstantiateStructWithArguments => {
+                write!(f, "Cannot instantiate structure with given arguments.")
+            },
         }
     }
 }
@@ -67,6 +75,8 @@ impl Error for TypeError {
             TypeError::CannotMakeCallable => "Cannot make type callable.",
             TypeError::NotCallable => "Not callable.",
             TypeError::IncompatibleArguments => "Arguments incompatible.",
+            TypeError::TypeHasNoMember => "Type has no member.",
+            TypeError::CannotInstantiateStructWithArguments => "Cannot instantiate structure with given arguments.",
         }
     }
 }
