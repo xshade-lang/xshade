@@ -1,0 +1,6 @@
+[package]
+name = "string_interner"
+version = "0.1.0"
+authors = ["Marc-Anton Boehm-von Thenen <marc-anton.boehm-von-thenen_ext@smartray.de>"]
+
+[dependencies]
