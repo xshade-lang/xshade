@@ -1,6 +1,7 @@
 use ::ast::*;
 use ::module::Module;
 use ::type_system::call_signature::CallSignature;
+use ::type_system::structure_members::{ StructureMember, StructureMembers };
 use ::type_system::error::{ TypeError, TypeCheckResult };
 use ::type_system::symbol_table::SymbolTable;
 use ::type_system::type_environment::{ TypeReference };
@@ -39,10 +40,10 @@ fn check_structs(symbol_table: &mut SymbolTable, structs: &mut Vec<&mut StructDe
         for member in s.struct_member.iter_mut() {
             let struct_member_type = try!(symbol_table.find_type_ref_or_err(&member.struct_member_type_name.name));
             member.struct_member_type = Some(struct_member_type);
-            member_list.push(struct_member_type);
+            member_list.push(StructureMember::new(member.struct_member_name.name.clone(), struct_member_type));
         }
         let mut t = try!(symbol_table.find_type_mut_or_err(s.declaring_type.unwrap())); //TODO ugly unwrap
-        try!(t.set_members(member_list));
+        try!(t.set_members(StructureMembers::new(member_list)));
     }
     
     Ok(())

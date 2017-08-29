@@ -1,4 +1,5 @@
 use ::type_system::call_signature::CallSignature;
+use ::type_system::structure_members::StructureMembers;
 use ::type_system::error::{ TypeError, TypeCheckResult };
 use ::type_system::type_environment::TypeReference;
 
@@ -10,7 +11,8 @@ pub struct TypeDefinition {
     explicit_casts: Vec<TypeReference>,
 
     call_signature: Option<CallSignature>,
-    member: Option<Vec<TypeReference>>,
+    // member: Option<Vec<TypeReference>>,
+    member: Option<StructureMembers>,
 }
 
 impl TypeDefinition {
@@ -32,7 +34,7 @@ impl TypeDefinition {
         }
     }
 
-    pub fn set_members(&mut self, members: Vec<TypeReference>) -> TypeCheckResult<()> {
+    pub fn set_members(&mut self, members: StructureMembers) -> TypeCheckResult<()> {
         if self.has_member() {
             // TODO error if already set
         }
