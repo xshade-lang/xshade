@@ -1,21 +1,52 @@
 use ::std::str;
+use ::nom_locate::LocatedSpan;
 use ::type_system::type_environment::TypeReference;
 
+type NomSpan<'a> = LocatedSpan<&'a str>;
+
 #[derive(Debug, Eq, PartialEq)]
-pub struct Identifier {
-    pub name: String
+pub struct Span {
+    pub offset: usize,
+    pub length: usize,
+    pub line: usize,
 }
 
-impl Identifier {
-    pub fn from_u8_slice(v: &[u8]) -> Identifier {
-        Identifier {
-            name: str::from_utf8(v).unwrap().to_string(),
+impl Span {
+    pub fn new(offset: usize, length: usize, line: usize) -> Span {
+        Span {
+            offset: offset,
+            length: length,
+            line: line,
         }
     }
 
-    pub fn from_str(v: &str) -> Identifier {
+    pub fn from_to(from: NomSpan, to: NomSpan) -> Span {
+        Span {
+            offset: from.offset,
+            length: to.offset - from.offset,
+            line: from.line as usize,
+        }
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct Identifier {
+    pub name: String,
+    pub span: Span,
+}
+
+impl Identifier {
+    pub fn new(name: &str, span: Span) -> Identifier {
         Identifier {
-            name: v.to_string(),
+            name: name.to_string(),
+            span: span,
+        }
+    }
+
+    pub fn from_span(span: NomSpan) -> Identifier {
+        Identifier {
+            name: span.fragment.to_string(),
+            span: Span::new(span.offset, span.fragment.len(), span.line as usize),
         }
     }
 }
@@ -34,6 +65,7 @@ pub struct ConstantDefinition {
     pub constant_variant: ConstantVariant,
     pub constant_type_name: TypeIdentifier,
     pub constant_type: Option<TypeReference>,
+    pub span: Span,
 }
 
 #[derive(Debug, Eq, PartialEq)]

@@ -4,5 +4,5 @@ version = "0.1.0"
 authors = ["Andreas Fischer <home@deviru.de>"]
 
 [dependencies]
-nom = "^3.1"
-indextree = "1.0.1"
+nom = "^3.2"
+nom_locate = "^0.1"
