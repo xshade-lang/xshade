@@ -20,33 +20,49 @@ impl Span {
         }
     }
 
+    pub fn from_span(span: NomSpan) -> Span {
+        Span {
+            offset: span.offset,
+            length: span.fragment.len(),
+            line: span.line as usize,
+        }
+    }
+
     pub fn from_to(from: NomSpan, to: NomSpan) -> Span {
         Span {
             offset: from.offset,
-            length: to.offset - from.offset,
+            length: to.offset - from.offset + to.fragment.len(),
             line: from.line as usize,
+        }
+    }
+
+    pub fn from_to_span(from: &Span, to: &Span) -> Span {
+        Span {
+            offset: from.offset,
+            length: to.offset - from.offset + to.length,
+            line: from.line,
         }
     }
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Identifier {
-    pub name: String,
     pub span: Span,
+    pub name: String,
 }
 
 impl Identifier {
     pub fn new(name: &str, span: Span) -> Identifier {
         Identifier {
-            name: name.to_string(),
             span: span,
+            name: name.to_string(),
         }
     }
 
     pub fn from_span(span: NomSpan) -> Identifier {
         Identifier {
-            name: span.fragment.to_string(),
             span: Span::new(span.offset, span.fragment.len(), span.line as usize),
+            name: span.fragment.to_string(),
         }
     }
 }
@@ -61,27 +77,30 @@ pub enum ConstantVariant {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ConstantDefinition {
+    pub span: Span,
     pub constant_name: Identifier,
     pub constant_variant: ConstantVariant,
     pub constant_type_name: TypeIdentifier,
     pub constant_type: Option<TypeReference>,
-    pub span: Span,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ProgramDefinition {
+    pub span: Span,
     pub program_name: Identifier,
     pub program_bindings: Vec<ProgramBindingDefinition>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ProgramBindingDefinition {
+    pub span: Span,
     pub program_binding_point: Identifier,
     pub bound_function_name: Identifier,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct StructDefinition {
+    pub span: Span,
     pub struct_name: Identifier,
     pub struct_member: Vec<StructMemberDefinition>,
     pub declaring_type: Option<TypeReference>,
@@ -89,6 +108,7 @@ pub struct StructDefinition {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct StructMemberDefinition {
+    pub span: Span,
     pub struct_member_name: Identifier,
     pub struct_member_type_name: TypeIdentifier,
     pub struct_member_type: Option<TypeReference>,
@@ -96,6 +116,7 @@ pub struct StructMemberDefinition {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct FunctionArgumentDeclaration {
+    pub span: Span,
     pub argument_name: Identifier,
     pub argument_type_name: TypeIdentifier,
     pub argument_type: Option<TypeReference>,
@@ -103,6 +124,7 @@ pub struct FunctionArgumentDeclaration {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct FunctionDeclaration {
+    pub span: Span,
     pub function_name: Identifier,
     pub arguments: Vec<FunctionArgumentDeclaration>,
     pub block: BlockDeclaration,
@@ -215,6 +237,7 @@ pub struct BlockDeclaration {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct PrimitiveDeclaration {
+    pub span: Span,
     pub type_name: Identifier,
     pub declaring_type: Option<TypeReference>,
 }
@@ -227,8 +250,10 @@ pub enum Operator {
     Divide,
 }
 
+// TODO type check
 #[derive(Debug, Eq, PartialEq)]
 pub struct OperatorDeclaration {
+    pub span: Span,
     pub operator: Operator,
     pub arguments: Vec<FunctionArgumentDeclaration>,
     pub return_type: TypeIdentifier, 
@@ -240,8 +265,10 @@ pub enum CastType {
     Explicit
 }
 
+// TODO type check
 #[derive(Debug, Eq, PartialEq)]
 pub struct CastDeclaration {
+    pub span: Span,
     pub cast_type: CastType,
     pub source_type: TypeIdentifier,
     pub target_type: TypeIdentifier,

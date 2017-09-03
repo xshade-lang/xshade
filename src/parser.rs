@@ -17,38 +17,34 @@ named!(parse_identifier<NomSpan, NomSpan>,
 
 named!(parse_constant<NomSpan, ItemKind>,
     do_parse!(
-        from: ws!(position!()) >>
-        ws!(tag!("const")) >>
+        from: ws!(tag!("const")) >>
         constant_name: parse_symbol_declaration >>
         ws!(tag!(":")) >>
         constant_type_name: parse_type_declaration >>
-        ws!(tag!(";")) >>
-        to: ws!(position!()) >>
+        to: ws!(tag!(";")) >>
         (ItemKind::Constant(ConstantDefinition{
+            span: Span::from_to(from, to),
             constant_name: constant_name,
             constant_variant: ConstantVariant::Constant,
             constant_type_name: constant_type_name,
             constant_type: None,
-            span: Span::from_to(from, to),
         }))
     )
 );
 
 named!(parse_sampler<NomSpan, ItemKind>,
     do_parse!(
-        from: ws!(position!()) >>
-        ws!(tag!("sampler")) >>
+        from: ws!(tag!("sampler")) >>
         sampler_name: parse_symbol_declaration >>
         ws!(tag!(":")) >>
         sampler_type_name: parse_type_declaration >>
-        ws!(tag!(";")) >>
-        to: ws!(position!()) >>
+        to: ws!(tag!(";")) >>
         (ItemKind::Constant(ConstantDefinition{
+            span: Span::from_to(from, to),
             constant_name: sampler_name,
             constant_variant: ConstantVariant::Sampler,
             constant_type_name: sampler_type_name,
             constant_type: None,
-            span: Span::from_to(from, to),
         }))
     )
 );
@@ -59,6 +55,7 @@ named!(parse_program_binding<NomSpan, ProgramBindingDefinition>,
         ws!(tag!(":")) >>
         bound_function_name: parse_symbol_declaration >>
         (ProgramBindingDefinition{
+            span: Span::from_to_span(&program_binding_point.span, &bound_function_name.span),
             program_binding_point: program_binding_point,
             bound_function_name: bound_function_name,
         })
@@ -67,15 +64,16 @@ named!(parse_program_binding<NomSpan, ProgramBindingDefinition>,
 
 named!(parse_program<NomSpan, ItemKind>,
     do_parse!(
-        ws!(tag!("program")) >>
+        from: ws!(tag!("program")) >>
         program_name: parse_symbol_declaration >>
         ws!(tag!("{")) >>
         program_bindings: ws!(separated_list!(tag!(","), parse_program_binding)) >>
         opt!(ws!(tag!(","))) >>
-        ws!(tag!("}")) >>
+        to: ws!(tag!("}")) >>
         (ItemKind::Program(ProgramDefinition{
+            span: Span::from_to(from, to),
             program_name: program_name,
-            program_bindings: program_bindings
+            program_bindings: program_bindings,
         }))
     )
 );
@@ -86,6 +84,7 @@ named!(parse_struct_member<NomSpan, StructMemberDefinition>,
         ws!(tag!(":")) >>
         struct_member_type_name: parse_type_declaration >>
         (StructMemberDefinition{
+            span: Span::from_to_span(&struct_member_name.span, &struct_member_type_name.span),
             struct_member_name: struct_member_name,
             struct_member_type_name: struct_member_type_name,
             struct_member_type: None,
@@ -95,13 +94,14 @@ named!(parse_struct_member<NomSpan, StructMemberDefinition>,
 
 named!(parse_struct<NomSpan, ItemKind>,
     do_parse!(
-        ws!(tag!("struct")) >>
+        from: ws!(tag!("struct")) >>
         struct_name: parse_symbol_declaration >>
         ws!(tag!("{")) >>
         member: ws!(separated_list!(tag!(","), parse_struct_member)) >>
         opt!(ws!(tag!(","))) >>
-        ws!(tag!("}")) >>
+        to: ws!(tag!("}")) >>
         (ItemKind::Struct(StructDefinition{
+            span: Span::from_to(from, to),
             struct_name: struct_name,
             struct_member: member,
             declaring_type: None,
@@ -115,6 +115,7 @@ named!(parse_function_argument<NomSpan, FunctionArgumentDeclaration>,
         ws!(tag!(":")) >>
         argument_type_name: parse_type_declaration >>
         (FunctionArgumentDeclaration{
+            span: Span::from_to_span(&argument_name.span, &argument_type_name.span),
             argument_name: argument_name,
             argument_type_name: argument_type_name,
             argument_type: None,
@@ -359,7 +360,7 @@ named!(parse_block_declaration<NomSpan, BlockDeclaration>,
 // TODO make return type optional
 named!(parse_function<NomSpan, ItemKind>,
     do_parse!(
-        ws!(tag!("fn")) >>
+        from: ws!(tag!("fn")) >>
         function_name: parse_symbol_declaration >>
         ws!(tag!("(")) >>
         arguments: ws!(separated_list!(tag!(","), parse_function_argument)) >>
@@ -368,8 +369,9 @@ named!(parse_function<NomSpan, ItemKind>,
         return_type_name: parse_type_declaration >>
         ws!(tag!("{")) >>
         block: parse_block_declaration >>
-        ws!(tag!("}")) >>
+        to: ws!(tag!("}")) >>
         (ItemKind::Function(FunctionDeclaration{
+            span: Span::from_to(from, to),
             function_name: function_name,
             arguments: arguments,
             block: block,
@@ -382,11 +384,12 @@ named!(parse_function<NomSpan, ItemKind>,
 
 named!(parse_primitive<NomSpan, ItemKind>,
     do_parse!(
-        ws!(tag!("primitive")) >>
+        from: ws!(tag!("primitive")) >>
         ws!(tag!("type")) >>
         type_name: parse_symbol_declaration >>
-        ws!(tag!(";")) >>
+        to: ws!(tag!(";")) >>
         (ItemKind::Primitive(PrimitiveDeclaration{
+            span: Span::from_to(from, to),
             type_name: type_name,
             declaring_type: None,
         }))
@@ -412,15 +415,16 @@ fn char_to_operator(operator: char) -> Operator {
 
 named!(parse_operator<NomSpan, ItemKind>,
     do_parse!(
-        ws!(tag!("operator")) >>
+        from: ws!(tag!("operator")) >>
         operator: parse_operator_type >>
         ws!(tag!("(")) >>
         arguments: ws!(separated_list!(tag!(","), parse_function_argument)) >>
         ws!(tag!(")")) >>
         ws!(tag!("->")) >>
         return_type: parse_type_declaration >>
-        ws!(tag!(";")) >>
+        to: ws!(tag!(";")) >>
         (ItemKind::Operator(OperatorDeclaration{
+            span: Span::from_to(from, to),
             operator: operator,
             arguments: arguments,
             return_type: return_type,
@@ -430,13 +434,14 @@ named!(parse_operator<NomSpan, ItemKind>,
 
 named!(parse_implicit_cast<NomSpan, ItemKind>,
     do_parse!(
-        ws!(tag!("implicit")) >>
+        from: ws!(tag!("implicit")) >>
         ws!(tag!("cast")) >>
         source_type: parse_type_declaration >>
         ws!(tag!("->")) >>
         target_type: parse_type_declaration >>
-        ws!(tag!(";")) >>
+        to: ws!(tag!(";")) >>
         (ItemKind::Cast(CastDeclaration{
+            span: Span::from_to(from, to),
             cast_type: CastType::Implicit,
             source_type: source_type,
             target_type: target_type,
@@ -446,13 +451,14 @@ named!(parse_implicit_cast<NomSpan, ItemKind>,
 
 named!(parse_explicit_cast<NomSpan, ItemKind>,
     do_parse!(
-        ws!(tag!("explicit")) >>
+        from: ws!(tag!("explicit")) >>
         ws!(tag!("cast")) >>
         source_type: parse_type_declaration >>
         ws!(tag!("->")) >>
         target_type: parse_type_declaration >>
-        ws!(tag!(";")) >>
+        to: ws!(tag!(";")) >>
         (ItemKind::Cast(CastDeclaration{
+            span: Span::from_to(from, to),
             cast_type: CastType::Explicit,
             source_type: source_type,
             target_type: target_type,
@@ -499,18 +505,166 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse_primitive_statement() {
+    fn test_parse_const_statement() {
         let code = "const mvp: mat4x4;";
 
         assert_eq!(parse_str(code), Ok(
             vec![
                 ItemKind::Constant(
                     ConstantDefinition {
+                        span: Span::new(0, 18, 1),
                         constant_name: Identifier::new("mvp", Span::new(6, 3, 1)),
                         constant_variant: ConstantVariant::Constant,
                         constant_type_name: Identifier::new("mat4x4", Span::new(11, 6, 1)),
                         constant_type: None,
-                        span: Span::new(0, 18, 1)
+                    }
+                )
+            ]
+        ));
+    }
+
+    #[test]
+    fn test_parse_program() {
+        let code = "program Phong { vertex: vertexShader, fragment: fragmentShader, }";
+
+        assert_eq!(parse_str(code), Ok(
+            vec![
+                ItemKind::Program(
+                    ProgramDefinition {
+                        span: Span::new(0, 65, 1),
+                        program_name: Identifier::new("Phong", Span::new(8, 5, 1)),
+                        program_bindings: vec![
+                            ProgramBindingDefinition {
+                                span: Span::new(16, 20, 1),
+                                program_binding_point: Identifier::new("vertex", Span::new(16, 6, 1)),
+                                bound_function_name: Identifier::new("vertexShader", Span::new(24, 12, 1)),
+                            },
+                            ProgramBindingDefinition {
+                                span: Span::new(38, 24, 1),
+                                program_binding_point: Identifier::new("fragment", Span::new(38, 8, 1)),
+                                bound_function_name: Identifier::new("fragmentShader", Span::new(48, 14, 1)),
+                            },
+                        ],
+                    }
+                )
+            ]
+        ));
+    }
+
+    #[test]
+    fn test_parse_struct() {
+        let code = "struct VertexInput { position: vec3, uv: vec2, }";
+
+        assert_eq!(parse_str(code), Ok(
+            vec![
+                ItemKind::Struct(
+                    StructDefinition {
+                        span: Span::new(0, 48, 1),
+                        struct_name: Identifier::new("VertexInput", Span::new(7, 11, 1)),
+                        struct_member: vec![
+                            StructMemberDefinition {
+                                span: Span::new(21, 14, 1),
+                                struct_member_name: Identifier::new("position", Span::new(21, 8, 1)),
+                                struct_member_type_name: Identifier::new("vec3", Span::new(31, 4, 1)),
+                                struct_member_type: None,
+                            },
+                            StructMemberDefinition {
+                                span: Span::new(37, 8, 1),
+                                struct_member_name: Identifier::new("uv", Span::new(37, 2, 1)),
+                                struct_member_type_name: Identifier::new("vec2", Span::new(41, 4, 1)),
+                                struct_member_type: None,
+                            },
+                        ],
+                        declaring_type: None,
+                    }
+                )
+            ]
+        ));
+    }
+
+    #[test]
+    fn test_parse_function() {
+        let code = "fn main() -> void { }";
+
+        assert_eq!(parse_str(code), Ok(
+            vec![
+                ItemKind::Function(
+                    FunctionDeclaration {
+                        span: Span::new(0, 21, 1),
+                        function_name: Identifier::new("main", Span::new(3, 4, 1)),
+                        arguments: vec![],
+                        block: BlockDeclaration {
+                            statements: vec![],
+                        },
+                        return_type_name: Identifier::new("void", Span::new(13, 4, 1)),
+                        return_type: None,
+                        declaring_type: None,
+                    }
+                )
+            ]
+        ));
+    }
+
+    #[test]
+    fn test_parse_primitive() {
+        let code = "primitive type f32;";
+
+        assert_eq!(parse_str(code), Ok(
+            vec![
+                ItemKind::Primitive(
+                    PrimitiveDeclaration {
+                        span: Span::new(0, 19, 1),
+                        type_name: Identifier::new("f32", Span::new(15, 3, 1)),
+                        declaring_type: None,
+                    }
+                )
+            ]
+        ));
+    }
+
+    #[test]
+    fn test_parse_operator() {
+        let code = "operator + (lhs: f32, rhs: f32) -> f32;";
+
+        assert_eq!(parse_str(code), Ok(
+            vec![
+                ItemKind::Operator(
+                    OperatorDeclaration {
+                        span: Span::new(0, 39, 1),
+                        operator: Operator::Plus,
+                        arguments: vec![
+                            FunctionArgumentDeclaration {
+                                span: Span::new(12, 8, 1),
+                                argument_name: Identifier::new("lhs", Span::new(12, 3, 1)),
+                                argument_type_name: Identifier::new("f32", Span::new(17, 3, 1)),
+                                argument_type: None,
+                            },
+                            FunctionArgumentDeclaration {
+                                span: Span::new(22, 8, 1),
+                                argument_name: Identifier::new("rhs", Span::new(22, 3, 1)),
+                                argument_type_name: Identifier::new("f32", Span::new(27, 3, 1)),
+                                argument_type: None,
+                            }
+                        ],
+                        return_type: Identifier::new("f32", Span::new(35, 3, 1)),
+                    }
+                )
+            ]
+        ));
+    }
+
+    #[test]
+    fn test_parse_implicit_cast() {
+        let code = "implicit cast f32 -> f64;";
+
+        assert_eq!(parse_str(code), Ok(
+            vec![
+                ItemKind::Cast(
+                    CastDeclaration {
+                        span: Span::new(0, 25, 1),
+                        cast_type: CastType::Implicit,
+                        source_type: Identifier::new("f32", Span::new(14, 3, 1)),
+                        target_type: Identifier::new("f64", Span::new(21, 3, 1)),
                     }
                 )
             ]
