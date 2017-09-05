@@ -1,7 +1,7 @@
 [package]
 name = "xshade"
 version = "0.1.0"
-authors = ["Andreas Fischer <home@deviru.de>"]
+authors = ["Andreas Fischer <home@deviru.de>", "Marc-Anton Boehm-von Thenen <boehm.marc.anton@gmail.com>"]
 
 [dependencies]
 nom = "^3.1"
