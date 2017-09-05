@@ -15,6 +15,15 @@ named!(parse_identifier<NomSpan, NomSpan>,
     )
 );
 
+named!(parse_number<NomSpan, NomSpan>,
+    recognize!(
+        do_parse!(
+            many1!(one_of!("0123456789")) >>
+            ()
+        )
+    )
+);
+
 named!(parse_constant<NomSpan, ItemKind>,
     do_parse!(
         from: ws!(tag!("const")) >>
@@ -23,7 +32,7 @@ named!(parse_constant<NomSpan, ItemKind>,
         constant_type_name: parse_type_declaration >>
         to: ws!(tag!(";")) >>
         (ItemKind::Constant(ConstantDefinition{
-            span: Span::from_to(from, to),
+            span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
             constant_name: constant_name,
             constant_variant: ConstantVariant::Constant,
             constant_type_name: constant_type_name,
@@ -40,7 +49,7 @@ named!(parse_sampler<NomSpan, ItemKind>,
         sampler_type_name: parse_type_declaration >>
         to: ws!(tag!(";")) >>
         (ItemKind::Constant(ConstantDefinition{
-            span: Span::from_to(from, to),
+            span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
             constant_name: sampler_name,
             constant_variant: ConstantVariant::Sampler,
             constant_type_name: sampler_type_name,
@@ -55,7 +64,7 @@ named!(parse_program_binding<NomSpan, ProgramBindingDefinition>,
         ws!(tag!(":")) >>
         bound_function_name: parse_symbol_declaration >>
         (ProgramBindingDefinition{
-            span: Span::from_to_span(&program_binding_point.span, &bound_function_name.span),
+            span: Span::from_to(program_binding_point.span, bound_function_name.span),
             program_binding_point: program_binding_point,
             bound_function_name: bound_function_name,
         })
@@ -71,7 +80,7 @@ named!(parse_program<NomSpan, ItemKind>,
         opt!(ws!(tag!(","))) >>
         to: ws!(tag!("}")) >>
         (ItemKind::Program(ProgramDefinition{
-            span: Span::from_to(from, to),
+            span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
             program_name: program_name,
             program_bindings: program_bindings,
         }))
@@ -84,7 +93,7 @@ named!(parse_struct_member<NomSpan, StructMemberDefinition>,
         ws!(tag!(":")) >>
         struct_member_type_name: parse_type_declaration >>
         (StructMemberDefinition{
-            span: Span::from_to_span(&struct_member_name.span, &struct_member_type_name.span),
+            span: Span::from_to(struct_member_name.span, struct_member_type_name.span),
             struct_member_name: struct_member_name,
             struct_member_type_name: struct_member_type_name,
             struct_member_type: None,
@@ -101,7 +110,7 @@ named!(parse_struct<NomSpan, ItemKind>,
         opt!(ws!(tag!(","))) >>
         to: ws!(tag!("}")) >>
         (ItemKind::Struct(StructDefinition{
-            span: Span::from_to(from, to),
+            span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
             struct_name: struct_name,
             struct_member: member,
             declaring_type: None,
@@ -115,7 +124,7 @@ named!(parse_function_argument<NomSpan, FunctionArgumentDeclaration>,
         ws!(tag!(":")) >>
         argument_type_name: parse_type_declaration >>
         (FunctionArgumentDeclaration{
-            span: Span::from_to_span(&argument_name.span, &argument_type_name.span),
+            span: Span::from_to(argument_name.span, argument_type_name.span),
             argument_name: argument_name,
             argument_type_name: argument_type_name,
             argument_type: None,
@@ -143,6 +152,7 @@ named!(parse_struct_instantiation_field_initializer<NomSpan, StructFieldInitiali
         ws!(tag!(":")) >>
         initializer: parse_expression >>
         (StructFieldInitializerExpression{
+            span: Span::from_to(struct_field_name.span, initializer.get_span()),
             struct_field_name: struct_field_name,
             initializer: Box::new(initializer),
             struct_field_type: None,
@@ -156,8 +166,9 @@ named!(parse_struct_instantiation<NomSpan, ExpressionStatement>,
         ws!(tag!("{")) >>
         struct_field_initializer: ws!(separated_list!(tag!(","), parse_struct_instantiation_field_initializer)) >>
         opt!(ws!(tag!(","))) >>
-        ws!(tag!("}")) >>
+        to: ws!(tag!("}")) >>
         (ExpressionStatement::StructInstantiation(StructInstantiationExpression{
+            span: Span::from_to(struct_type_name.span, Span::from_nom_span(&to)),
             struct_type_name: struct_type_name,
             struct_field_initializer: struct_field_initializer,
             struct_type: None,
@@ -165,45 +176,41 @@ named!(parse_struct_instantiation<NomSpan, ExpressionStatement>,
     )
 );
 
-fn parse_int_literal(parts: Vec<char>) -> ExpressionStatement {
-    let string: String = parts.into_iter().collect();
+fn parse_int_literal(parts: NomSpan) -> ExpressionStatement {
+    let string: String = parts.fragment.to_string();
     ExpressionStatement::Literal(LiteralExpression {
-                                     value: string,
-                                     literal_expression_type: LiteralType::Int,
-                                     literal_type: None,
-                                 })
+        span: Span::from_nom_span(&parts),
+        value: string,
+        literal_expression_type: LiteralType::Int,
+        literal_type: None,
+    })
 }
 
-fn parse_float_literal(before: Vec<char>, after: Vec<char>) -> ExpressionStatement {
-    let mut before: String = before.into_iter().collect();
-    let after: String = after.into_iter().collect();
-    before.push_str(".");
-    before.push_str(&after);
+fn parse_float_literal(before: NomSpan, after: NomSpan) -> ExpressionStatement {
+    let mut a: String = before.fragment.to_string();
+    let b: String = after.fragment.to_string();
+    a.push_str(".");
+    a.push_str(&b);
     ExpressionStatement::Literal(LiteralExpression {
-                                     value: before,
-                                     literal_expression_type: LiteralType::Float,
-                                     literal_type: None,
-                                 })
+        span: Span::from_to(Span::from_nom_span(&before), Span::from_nom_span(&after)),
+        value: a,
+        literal_expression_type: LiteralType::Float,
+        literal_type: None,
+    })
 }
 
 named!(parse_float_literal_expression<NomSpan, ExpressionStatement>,
     do_parse!(
-        before: ws!(many0!(
-            one_of!("0123456789")
-        )) >>
+        before: ws!(parse_number) >>
         ws!(tag!(".")) >>
-        after: ws!(many0!(
-            one_of!("0123456789")
-        )) >>
+        after: ws!(parse_number) >>
         (parse_float_literal(before, after))
     )
 );
 
 named!(parse_int_literal_expression<NomSpan, ExpressionStatement>,
     do_parse!(
-        numbers: ws!(many1!(
-            one_of!("0123456789")
-        )) >>
+        numbers: ws!(parse_number) >>
         (parse_int_literal(numbers))
     )
 );
@@ -222,6 +229,7 @@ named!(parse_infix_expression<NomSpan, ExpressionStatement>,
         operator: ws!(one_of!("+-*/")) >>
         right: parse_expression >>
         (ExpressionStatement::Infix(InfixExpression{
+            span: Span::from_to(left.get_span(), right.get_span()),
             operator: char_to_operator(operator),
             left_hand: Box::new(left),
             right_hand: Box::new(right),
@@ -234,6 +242,7 @@ named!(parse_variable_expression<NomSpan, ExpressionStatement>,
     do_parse!(
         variable_name: parse_symbol_declaration >>
         (ExpressionStatement::Variable(VariableExpression{
+            span: variable_name.span.clone(),
             variable_name: variable_name,
             variable_type: None,
         }))
@@ -252,8 +261,9 @@ named!(parse_call<NomSpan, CallExpression>,
         function_name: parse_symbol_declaration >>
         ws!(tag!("(")) >>
         arguments: ws!(separated_list!(tag!(","), parse_expression)) >>
-        ws!(tag!(")")) >>
+        to: ws!(tag!(")")) >>
         (CallExpression {
+            span: Span::from_to(function_name.span, Span::from_nom_span(&to)),
             function_name: function_name,
             arguments: arguments,
             function_type: None,
@@ -268,6 +278,7 @@ named!(parse_field_accessor_expression<NomSpan, ExpressionStatement>,
         ws!(tag!(".")) >>
         field_name: parse_symbol_declaration >>
         (ExpressionStatement::FieldAccessor(FieldAccessorExpression{
+            span: Span::from_to(variable_name.span, field_name.span),
             variable_name: variable_name,
             field_name: field_name,
             field_type: None,
@@ -299,13 +310,14 @@ named!(parse_expression<NomSpan, ExpressionStatement>,
 
 named!(parse_local_declaration<NomSpan, BlockStatement>,
     do_parse!(
-        ws!(tag!("let")) >>
+        from: ws!(tag!("let")) >>
         symbol_name: parse_symbol_declaration >>
         ws!(tag!("=")) >>
         expression: parse_expression >>
-        ws!(tag!(";")) >>
+        to: ws!(tag!(";")) >>
         (BlockStatement::Local(
             LocalDeclaration{
+                span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
                 symbol_name: symbol_name,
                 expression: expression,
                 local_type: None,
@@ -316,10 +328,11 @@ named!(parse_local_declaration<NomSpan, BlockStatement>,
 
 named!(parse_return_declaration<NomSpan, BlockStatement>,
     do_parse!(
-        ws!(tag!("return")) >>
+        from: ws!(tag!("return")) >>
         expression: parse_expression >>
-        ws!(tag!(";")) >>
+        to: ws!(tag!(";")) >>
         (BlockStatement::Return(ReturnDeclaration{
+            span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
             expression: expression,
             return_type: None,
         }))
@@ -352,6 +365,7 @@ named!(parse_block_declaration<NomSpan, BlockDeclaration>,
     do_parse!(
         statements: parse_block_statements >>
         (BlockDeclaration{
+            span: Span::from_to(statements.first().unwrap().get_span(), statements.last().unwrap().get_span()),
             statements: statements,
         })
     )
@@ -371,7 +385,7 @@ named!(parse_function<NomSpan, ItemKind>,
         block: parse_block_declaration >>
         to: ws!(tag!("}")) >>
         (ItemKind::Function(FunctionDeclaration{
-            span: Span::from_to(from, to),
+            span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
             function_name: function_name,
             arguments: arguments,
             block: block,
@@ -389,7 +403,7 @@ named!(parse_primitive<NomSpan, ItemKind>,
         type_name: parse_symbol_declaration >>
         to: ws!(tag!(";")) >>
         (ItemKind::Primitive(PrimitiveDeclaration{
-            span: Span::from_to(from, to),
+            span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
             type_name: type_name,
             declaring_type: None,
         }))
@@ -424,7 +438,7 @@ named!(parse_operator<NomSpan, ItemKind>,
         return_type: parse_type_declaration >>
         to: ws!(tag!(";")) >>
         (ItemKind::Operator(OperatorDeclaration{
-            span: Span::from_to(from, to),
+            span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
             operator: operator,
             arguments: arguments,
             return_type: return_type,
@@ -441,7 +455,7 @@ named!(parse_implicit_cast<NomSpan, ItemKind>,
         target_type: parse_type_declaration >>
         to: ws!(tag!(";")) >>
         (ItemKind::Cast(CastDeclaration{
-            span: Span::from_to(from, to),
+            span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
             cast_type: CastType::Implicit,
             source_type: source_type,
             target_type: target_type,
@@ -458,7 +472,7 @@ named!(parse_explicit_cast<NomSpan, ItemKind>,
         target_type: parse_type_declaration >>
         to: ws!(tag!(";")) >>
         (ItemKind::Cast(CastDeclaration{
-            span: Span::from_to(from, to),
+            span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
             cast_type: CastType::Explicit,
             source_type: source_type,
             target_type: target_type,
@@ -487,7 +501,12 @@ named!(parse<NomSpan, Vec<ItemKind>>,
 pub fn parse_block(program: &str) -> Result<Vec<BlockStatement>, CompileError> {
     let input = NomSpan::new(program);
     match parse_block_statements(input) {
-        IResult::Done(_, result) => Ok(result),
+        IResult::Done(remaining, result) => {
+            if remaining.fragment.len() > 0 {
+                return Err(CompileError::new());
+            }
+            Ok(result)
+        },
         _ => Err(CompileError::new()),
     }
 }
@@ -495,7 +514,12 @@ pub fn parse_block(program: &str) -> Result<Vec<BlockStatement>, CompileError> {
 pub fn parse_str(program: &str) -> Result<Vec<ItemKind>, CompileError> {
     let input = NomSpan::new(program);
     match parse(input) {
-        IResult::Done(_, result) => Ok(result),
+        IResult::Done(remaining, result) => {
+            if remaining.fragment.len() > 0 {
+                return Err(CompileError::new());
+            }
+            Ok(result)
+        },
         _ => Err(CompileError::new()),
     }
 }
@@ -584,19 +608,35 @@ mod tests {
 
     #[test]
     fn test_parse_function() {
-        let code = "fn main() -> void { }";
+        let code = "fn main() -> f32 { return 0.0; }";
 
         assert_eq!(parse_str(code), Ok(
             vec![
                 ItemKind::Function(
                     FunctionDeclaration {
-                        span: Span::new(0, 21, 1),
+                        span: Span::new(0, 32, 1),
                         function_name: Identifier::new("main", Span::new(3, 4, 1)),
                         arguments: vec![],
                         block: BlockDeclaration {
-                            statements: vec![],
+                            span: Span::new(19, 11, 1),
+                            statements: vec![
+                                BlockStatement::Return(
+                                    ReturnDeclaration {
+                                        span: Span::new(19, 11, 1),
+                                        expression: ExpressionStatement::Literal(
+                                            LiteralExpression {
+                                                span: Span::new(26, 3, 1),
+                                                value: "0.0".to_string(),
+                                                literal_expression_type: LiteralType::Float,
+                                                literal_type: None,
+                                            }
+                                        ),
+                                        return_type: None,
+                                    }
+                                )
+                            ],
                         },
-                        return_type_name: Identifier::new("void", Span::new(13, 4, 1)),
+                        return_type_name: Identifier::new("f32", Span::new(13, 3, 1)),
                         return_type: None,
                         declaring_type: None,
                     }
