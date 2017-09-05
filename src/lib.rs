@@ -1,13 +1,13 @@
 #[macro_use]
 extern crate nom;
-extern crate indextree;
+#[macro_use]
+extern crate nom_locate;
 
 mod type_system;
 
 mod api;
 mod module;
 mod compile_error;
-mod glsl;
 mod ast;
 mod parser;
 mod string_builder;
