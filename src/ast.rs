@@ -23,14 +23,16 @@ pub struct Span {
     pub offset: usize,
     pub length: usize,
     pub line: usize,
+    pub column: usize,
 }
 
 impl Span {
-    pub fn new(offset: usize, length: usize, line: usize) -> Span {
+    pub fn new(offset: usize, length: usize, line: usize, column: usize) -> Span {
         Span {
             offset: offset,
             length: length,
             line: line,
+            column: column,
         }
     }
 
@@ -39,6 +41,7 @@ impl Span {
             offset: span.offset,
             length: span.fragment.len(),
             line: span.line as usize,
+            column: span.get_column(), // TODO get_column_utf8 ?
         }
     }
 
@@ -46,7 +49,8 @@ impl Span {
         Span {
             offset: from.offset,
             length: to.offset - from.offset + to.length,
-            line: from.line as usize,
+            line: from.line,
+            column: from.column,
         }
     }
 }
@@ -67,9 +71,9 @@ impl Identifier {
         }
     }
 
-    pub fn from_span(span: NomSpan) -> Identifier {
+    pub fn from_nom_span(span: NomSpan) -> Identifier {
         Identifier {
-            span: Span::new(span.offset, span.fragment.len(), span.line as usize),
+            span: Span::new(span.offset, span.fragment.len(), span.line as usize, span.get_column() as usize),
             name: span.fragment.to_string(),
         }
     }
