@@ -8,6 +8,10 @@ impl CompileError {
     pub fn new() -> CompileError {
         CompileError
     }
+
+    pub fn unknown() -> CompileError {
+        CompileError
+    }
 }
 
 impl fmt::Display for CompileError {

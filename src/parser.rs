@@ -135,14 +135,14 @@ named!(parse_function_argument<NomSpan, FunctionArgumentDeclaration>,
 named!(parse_symbol_declaration<NomSpan, Identifier>,
     do_parse!(
         name: ws!(parse_identifier) >>
-        (Identifier::from_span(name))
+        (Identifier::from_nom_span(name))
     )
 );
 
 named!(parse_type_declaration<NomSpan, Identifier>,
     do_parse!(
         name: ws!(parse_identifier) >>
-        (Identifier::from_span(name))
+        (Identifier::from_nom_span(name))
     )
 );
 
@@ -503,11 +503,11 @@ pub fn parse_block(program: &str) -> Result<Vec<BlockStatement>, CompileError> {
     match parse_block_statements(input) {
         IResult::Done(remaining, result) => {
             if remaining.fragment.len() > 0 {
-                return Err(CompileError::new());
+                return Err(CompileError::unknown());
             }
             Ok(result)
         },
-        _ => Err(CompileError::new()),
+        _ => Err(CompileError::unknown()),
     }
 }
 
@@ -516,11 +516,11 @@ pub fn parse_str(program: &str) -> Result<Vec<ItemKind>, CompileError> {
     match parse(input) {
         IResult::Done(remaining, result) => {
             if remaining.fragment.len() > 0 {
-                return Err(CompileError::new());
+                return Err(CompileError::unknown());
             }
             Ok(result)
         },
-        _ => Err(CompileError::new()),
+        _ => Err(CompileError::unknown()),
     }
 }
 
@@ -536,10 +536,10 @@ mod tests {
             vec![
                 ItemKind::Constant(
                     ConstantDefinition {
-                        span: Span::new(0, 18, 1),
-                        constant_name: Identifier::new("mvp", Span::new(6, 3, 1)),
+                        span: Span::new(0, 18, 1, 1),
+                        constant_name: Identifier::new("mvp", Span::new(6, 3, 1, 7)),
                         constant_variant: ConstantVariant::Constant,
-                        constant_type_name: Identifier::new("mat4x4", Span::new(11, 6, 1)),
+                        constant_type_name: Identifier::new("mat4x4", Span::new(11, 6, 1, 12)),
                         constant_type: None,
                     }
                 )
@@ -555,18 +555,18 @@ mod tests {
             vec![
                 ItemKind::Program(
                     ProgramDefinition {
-                        span: Span::new(0, 65, 1),
-                        program_name: Identifier::new("Phong", Span::new(8, 5, 1)),
+                        span: Span::new(0, 65, 1, 1),
+                        program_name: Identifier::new("Phong", Span::new(8, 5, 1, 9)),
                         program_bindings: vec![
                             ProgramBindingDefinition {
-                                span: Span::new(16, 20, 1),
-                                program_binding_point: Identifier::new("vertex", Span::new(16, 6, 1)),
-                                bound_function_name: Identifier::new("vertexShader", Span::new(24, 12, 1)),
+                                span: Span::new(16, 20, 1, 17),
+                                program_binding_point: Identifier::new("vertex", Span::new(16, 6, 1, 17)),
+                                bound_function_name: Identifier::new("vertexShader", Span::new(24, 12, 1, 25)),
                             },
                             ProgramBindingDefinition {
-                                span: Span::new(38, 24, 1),
-                                program_binding_point: Identifier::new("fragment", Span::new(38, 8, 1)),
-                                bound_function_name: Identifier::new("fragmentShader", Span::new(48, 14, 1)),
+                                span: Span::new(38, 24, 1, 39),
+                                program_binding_point: Identifier::new("fragment", Span::new(38, 8, 1, 39)),
+                                bound_function_name: Identifier::new("fragmentShader", Span::new(48, 14, 1, 49)),
                             },
                         ],
                     }
@@ -583,19 +583,19 @@ mod tests {
             vec![
                 ItemKind::Struct(
                     StructDefinition {
-                        span: Span::new(0, 48, 1),
-                        struct_name: Identifier::new("VertexInput", Span::new(7, 11, 1)),
+                        span: Span::new(0, 48, 1, 1),
+                        struct_name: Identifier::new("VertexInput", Span::new(7, 11, 1, 8)),
                         struct_member: vec![
                             StructMemberDefinition {
-                                span: Span::new(21, 14, 1),
-                                struct_member_name: Identifier::new("position", Span::new(21, 8, 1)),
-                                struct_member_type_name: Identifier::new("vec3", Span::new(31, 4, 1)),
+                                span: Span::new(21, 14, 1, 22),
+                                struct_member_name: Identifier::new("position", Span::new(21, 8, 1, 22)),
+                                struct_member_type_name: Identifier::new("vec3", Span::new(31, 4, 1, 32)),
                                 struct_member_type: None,
                             },
                             StructMemberDefinition {
-                                span: Span::new(37, 8, 1),
-                                struct_member_name: Identifier::new("uv", Span::new(37, 2, 1)),
-                                struct_member_type_name: Identifier::new("vec2", Span::new(41, 4, 1)),
+                                span: Span::new(37, 8, 1, 38),
+                                struct_member_name: Identifier::new("uv", Span::new(37, 2, 1, 38)),
+                                struct_member_type_name: Identifier::new("vec2", Span::new(41, 4, 1, 42)),
                                 struct_member_type: None,
                             },
                         ],
@@ -614,18 +614,18 @@ mod tests {
             vec![
                 ItemKind::Function(
                     FunctionDeclaration {
-                        span: Span::new(0, 32, 1),
-                        function_name: Identifier::new("main", Span::new(3, 4, 1)),
+                        span: Span::new(0, 32, 1, 1),
+                        function_name: Identifier::new("main", Span::new(3, 4, 1, 4)),
                         arguments: vec![],
                         block: BlockDeclaration {
-                            span: Span::new(19, 11, 1),
+                            span: Span::new(19, 11, 1, 20),
                             statements: vec![
                                 BlockStatement::Return(
                                     ReturnDeclaration {
-                                        span: Span::new(19, 11, 1),
+                                        span: Span::new(19, 11, 1, 20),
                                         expression: ExpressionStatement::Literal(
                                             LiteralExpression {
-                                                span: Span::new(26, 3, 1),
+                                                span: Span::new(26, 3, 1, 27),
                                                 value: "0.0".to_string(),
                                                 literal_expression_type: LiteralType::Float,
                                                 literal_type: None,
@@ -636,7 +636,7 @@ mod tests {
                                 )
                             ],
                         },
-                        return_type_name: Identifier::new("f32", Span::new(13, 3, 1)),
+                        return_type_name: Identifier::new("f32", Span::new(13, 3, 1, 14)),
                         return_type: None,
                         declaring_type: None,
                     }
@@ -653,8 +653,8 @@ mod tests {
             vec![
                 ItemKind::Primitive(
                     PrimitiveDeclaration {
-                        span: Span::new(0, 19, 1),
-                        type_name: Identifier::new("f32", Span::new(15, 3, 1)),
+                        span: Span::new(0, 19, 1, 1),
+                        type_name: Identifier::new("f32", Span::new(15, 3, 1, 16)),
                         declaring_type: None,
                     }
                 )
@@ -670,23 +670,23 @@ mod tests {
             vec![
                 ItemKind::Operator(
                     OperatorDeclaration {
-                        span: Span::new(0, 39, 1),
+                        span: Span::new(0, 39, 1, 1),
                         operator: Operator::Plus,
                         arguments: vec![
                             FunctionArgumentDeclaration {
-                                span: Span::new(12, 8, 1),
-                                argument_name: Identifier::new("lhs", Span::new(12, 3, 1)),
-                                argument_type_name: Identifier::new("f32", Span::new(17, 3, 1)),
+                                span: Span::new(12, 8, 1, 13),
+                                argument_name: Identifier::new("lhs", Span::new(12, 3, 1, 13)),
+                                argument_type_name: Identifier::new("f32", Span::new(17, 3, 1, 18)),
                                 argument_type: None,
                             },
                             FunctionArgumentDeclaration {
-                                span: Span::new(22, 8, 1),
-                                argument_name: Identifier::new("rhs", Span::new(22, 3, 1)),
-                                argument_type_name: Identifier::new("f32", Span::new(27, 3, 1)),
+                                span: Span::new(22, 8, 1, 23),
+                                argument_name: Identifier::new("rhs", Span::new(22, 3, 1, 23)),
+                                argument_type_name: Identifier::new("f32", Span::new(27, 3, 1, 28)),
                                 argument_type: None,
                             }
                         ],
-                        return_type: Identifier::new("f32", Span::new(35, 3, 1)),
+                        return_type: Identifier::new("f32", Span::new(35, 3, 1, 36)),
                     }
                 )
             ]
@@ -701,10 +701,10 @@ mod tests {
             vec![
                 ItemKind::Cast(
                     CastDeclaration {
-                        span: Span::new(0, 25, 1),
+                        span: Span::new(0, 25, 1, 1),
                         cast_type: CastType::Implicit,
-                        source_type: Identifier::new("f32", Span::new(14, 3, 1)),
-                        target_type: Identifier::new("f64", Span::new(21, 3, 1)),
+                        source_type: Identifier::new("f32", Span::new(14, 3, 1, 15)),
+                        target_type: Identifier::new("f64", Span::new(21, 3, 1, 22)),
                     }
                 )
             ]
