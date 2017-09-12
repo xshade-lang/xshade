@@ -1,7 +1,7 @@
 use ::nom::*;
 use ::nom_locate::LocatedSpan;
 use ::ast::*;
-use ::compile_error::{ CompileError, CompileErrorKind };
+use ::compile_error::CompileError;
 
 type NomSpan<'a> = LocatedSpan<&'a str>;
 
