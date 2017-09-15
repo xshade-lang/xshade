@@ -2,13 +2,18 @@ use ::ast::*;
 
 #[derive(Debug)]
 pub struct Module {
+    path: String,
+    source: String,
     ast: Vec<ItemKind>,
     is_core_module: bool,
 }
 
 impl Module {
-    pub fn from_ast(ast: Vec<ItemKind>, is_core_module: bool) -> Module {
+
+    pub fn new(path: String, source: String, ast: Vec<ItemKind>, is_core_module: bool) -> Module {
         Module {
+            path: path,
+            source: source,
             ast: ast,
             is_core_module: is_core_module,
         }

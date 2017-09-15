@@ -15,3 +15,5 @@ mod string_builder;
 
 pub use ::ast::*;
 pub use api::parse_module;
+
+pub use compiler::{ Compiler, ModuleResolver };

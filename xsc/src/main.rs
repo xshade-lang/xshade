@@ -3,23 +3,19 @@ extern crate getopts;
 
 use getopts::Options;
 use std::env;
+use xshade::*;
+
+mod file_resolver;
 
 pub fn main() {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
+    let module_path = args[1].to_string();
 
-    let mut opts = Options::new();
+    let file_resolver = file_resolver::FileResolver::new();
+    let mut compiler = Compiler::new(Box::new(file_resolver));
 
-    opts.optflag("", "glsl", "output glsl");
+    let module = compiler.compile_module(&module_path);
 
-    let source = args[1].to_string();
-
-    let matches = match opts.parse(&args[2..]) {
-        Ok(m) => { m }
-        Err(f) => { panic!(f.to_string()) }
-    };
-
-    let glsl = matches.opt_present("glsl");
-
-    println!("{:?}", glsl);
+    println!("{:#?}", module);
 }
