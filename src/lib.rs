@@ -6,6 +6,7 @@ extern crate nom_locate;
 mod type_system;
 
 mod api;
+mod compiler;
 mod module;
 mod compile_error;
 mod ast;

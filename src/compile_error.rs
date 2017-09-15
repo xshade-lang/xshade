@@ -1,6 +1,8 @@
 use std::error::Error;
 use std::fmt;
 
+pub type CompileResult<T> = Result<T, CompileError>;
+
 #[derive(Debug, Eq, PartialEq)]
 pub struct CompileError;
 
