@@ -2,7 +2,7 @@ use ::ast::*;
 use ::module::Module;
 use ::type_system::call_signature::CallSignature;
 use ::type_system::structure_members::{ StructureMember, StructureMembers };
-use ::type_system::error::{ TypeError, TypeCheckResult };
+use ::type_system::error::{ TypeError, ErrorKind, TypeCheckResult };
 use ::type_system::symbol_table::SymbolTable;
 use ::type_system::type_environment::{ TypeReference };
 
@@ -19,7 +19,7 @@ pub fn type_check(symbol_table: &mut SymbolTable, module: &mut Module) -> TypeCh
 
 fn check_primitives(is_core_module: bool, symbol_table: &mut SymbolTable, primitives: &mut Vec<&mut PrimitiveDeclaration>) -> TypeCheckResult<()> {
     if !is_core_module && primitives.len() > 0 {
-        return Err(TypeError::SyntaxOnlyValidInCoreModule)
+        return Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::SyntaxOnlyValidInCoreModule))
     }
     for p in primitives.iter_mut() {
         let type_ref = try!(symbol_table.create_global_type(&p.type_name.name));
@@ -51,7 +51,7 @@ fn check_structs(symbol_table: &mut SymbolTable, structs: &mut Vec<&mut StructDe
 
 fn check_casts(is_core_module: bool, symbol_table: &mut SymbolTable, casts: &mut Vec<&mut CastDeclaration>) -> TypeCheckResult<()> {
     if !is_core_module && casts.len() > 0 {
-        return Err(TypeError::SyntaxOnlyValidInCoreModule)
+        return Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::SyntaxOnlyValidInCoreModule));
     }
     for c in casts.iter_mut() {
         let source_type = try!(symbol_table.find_type_ref_or_err(&c.source_type.name));
@@ -59,11 +59,11 @@ fn check_casts(is_core_module: bool, symbol_table: &mut SymbolTable, casts: &mut
 
         let mut source_type = match symbol_table.find_type_mut(source_type) {
             Some(t) => t,
-            None => return Err(TypeError::TypeNotFound(c.source_type.name.clone()))
+            None => return Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::TypeNotFound(c.source_type.name.clone())))
         };
 
         if source_type.does_cast_exist(target_type.clone()) {
-            return Err(TypeError::CastAlreadyDeclared(c.source_type.name.clone(), c.target_type.name.clone()));
+            return Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::CastAlreadyDeclared(c.source_type.name.clone(), c.target_type.name.clone())));
         }
 
         match c.cast_type {
@@ -151,21 +151,22 @@ fn check_field_accessor_expression(symbol_table: &mut SymbolTable, field_accesso
     let type_ref = match symbol_table.find_symbol(&field_accessor_expression.variable_name.name) {
         Some(symbol) => match symbol.get_type() {
             Some(t) => t,
-            None => return Err(TypeError::CannotInfer(field_accessor_expression.variable_name.name.clone())),
+            None => return Err(TypeError::new(Span::empty(), ErrorKind::CannotInfer(field_accessor_expression.variable_name.name.clone()))),
         },
-        None => return Err(TypeError::VariableNotFound(field_accessor_expression.variable_name.name.clone())),
+        None => return Err(TypeError::new(Span::empty(), ErrorKind::VariableNotFound(field_accessor_expression.variable_name.name.clone()))),
     };
+
     let field_type_ref = match symbol_table.find_type(type_ref) {
         Some(t) => {
             if !t.has_member() {
-                return Err(TypeError::TypeHasNoMember);
+                return Err(TypeError::new(Span::empty(), ErrorKind::TypeHasNoMember));
             }
             match t.find_member_type(&field_accessor_expression.field_name.name) {
                 Some(t) => t,
-                None => return Err(TypeError::MemberNotFound),
+                None => return Err(TypeError::new(Span::empty(), ErrorKind::MemberNotFound)),
             }
         },
-        None => return Err(TypeError::CannotInfer(field_accessor_expression.variable_name.name.clone())),
+        None => return Err(TypeError::new(Span::empty(), ErrorKind::CannotInfer(field_accessor_expression.variable_name.name.clone()))),
     };
 
     field_accessor_expression.field_type = Some(field_type_ref);
@@ -206,14 +207,14 @@ fn check_struct_instatiation_expression(symbol_table: &mut SymbolTable, struct_i
         Some(t) => match t.get_member() {
             Some(m) => {
                 if !m.is_assignable_with(&x) {
-                    return Err(TypeError::CannotInstantiateStructWithArguments);
+                    return Err(TypeError::new(Span::empty(), ErrorKind::CannotInstantiateStructWithArguments));
                 }
             },
             None => {
-                return Err(TypeError::TypeHasNoMember);
+                return Err(TypeError::new(Span::empty(), ErrorKind::TypeHasNoMember));
             }
         },
-        None => return Err(TypeError::TypeNotFound(struct_instantiation_expression.struct_type_name.name.clone())),
+        None => return Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(struct_instantiation_expression.struct_type_name.name.clone()))),
     }
 
     Ok(struct_type)
@@ -227,7 +228,7 @@ fn check_infix_expression(symbol_table: &mut SymbolTable, infix_expression: &mut
 
     if left_hand_type != right_hand_type {
         // TODO implicit casts
-        return Err(TypeError::IncompatibleTypes("".to_owned(), "".to_owned()));
+        return Err(TypeError::new(Span::empty(), ErrorKind::IncompatibleTypes("".to_owned(), "".to_owned())));
     }
 
     // TODO check if operator is available
@@ -244,9 +245,9 @@ fn check_variable_expression(symbol_table: &mut SymbolTable, variable_expression
                 variable_expression.variable_type = Some(t);
                 return Ok(t);
             },
-            None => return Err(TypeError::CannotInfer(variable_expression.variable_name.name.clone())),
+            None => return Err(TypeError::new(Span::empty(), ErrorKind::CannotInfer(variable_expression.variable_name.name.clone()))),
         },
-        None => return Err(TypeError::VariableNotFound(variable_expression.variable_name.name.clone())),
+        None => return Err(TypeError::new(Span::empty(), ErrorKind::VariableNotFound(variable_expression.variable_name.name.clone()))),
     }
 }
 

@@ -1,5 +1,6 @@
 use ::std::collections::HashMap;
-use ::type_system::error::{ TypeError, TypeCheckResult };
+use ::ast::Span;
+use ::type_system::error::{ TypeError, ErrorKind, TypeCheckResult };
 use ::type_system::type_definition::TypeDefinition;
 use ::type_system::type_environment::{ TypeEnvironment, TypeReference };
 
@@ -72,7 +73,7 @@ impl SymbolTable {
     pub fn add_global_type(&mut self, name: &str, type_reference: TypeReference) -> TypeCheckResult<()> {
         let root = self.scopes.len() - 1;
         if self.scopes[root].types.contains_key(name) {
-            return Err(TypeError::SymbolNameAlreadyUsed(name.to_string()));
+            return Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::SymbolNameAlreadyUsed(name.to_string())));
         }
 
         self.scopes[root].types.insert(name.to_string(), type_reference);
@@ -81,7 +82,7 @@ impl SymbolTable {
 
     pub fn add_type(&mut self, name: &str, type_reference: TypeReference) -> TypeCheckResult<()> {
         if self.scopes[0].types.contains_key(name) {
-            return Err(TypeError::SymbolNameAlreadyUsed(name.to_string()));
+            return Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::SymbolNameAlreadyUsed(name.to_owned())));
         }
 
         self.scopes[0].types.insert(name.to_string(), type_reference);
@@ -90,7 +91,7 @@ impl SymbolTable {
 
     pub fn create_type(&mut self, name: &str) -> TypeCheckResult<TypeReference> {
         if self.scopes[0].types.contains_key(name) {
-            return Err(TypeError::SymbolNameAlreadyUsed(name.to_string()));
+            return Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::SymbolNameAlreadyUsed(name.to_owned())));
         }
 
         let type_ref = try!(self.types.create_type(name));
@@ -102,7 +103,7 @@ impl SymbolTable {
     pub fn create_global_type(&mut self, name: &str) -> TypeCheckResult<TypeReference> {
         let root = self.scopes.len() - 1;
         if self.scopes[root].types.contains_key(name) {
-            return Err(TypeError::SymbolNameAlreadyUsed(name.to_string()));
+            return Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::SymbolNameAlreadyUsed(name.to_owned())));
         }
 
         let type_ref = try!(self.types.create_type(name));
@@ -132,17 +133,17 @@ impl SymbolTable {
             if scope.types.contains_key(name) {
                 match scope.types.get(name) {
                     Some(t) => return Ok(t.clone()),
-                    None => return Err(TypeError::TypeNotFound(name.to_string())),
+                    None => return Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::TypeNotFound(name.to_owned()))),
                 }
             }
         }
 
-        Err(TypeError::TypeNotFound(name.to_string()))
+        Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::TypeNotFound(name.to_owned())))
     }
 
     pub fn add_symbol(&mut self, name: &str) -> TypeCheckResult<()> {
         if self.scopes[0].symbols.contains_key(name) {
-            return Err(TypeError::SymbolNameAlreadyUsed(name.to_string()));
+            return Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::SymbolNameAlreadyUsed(name.to_owned())));
         }
 
         self.scopes[0].symbols.insert(name.to_string(), Symbol::new(name, SymbolState::Free));
@@ -151,7 +152,7 @@ impl SymbolTable {
 
     pub fn add_symbol_with_type(&mut self, name: &str, symbol_type: TypeReference) -> TypeCheckResult<()> {
         if self.scopes[0].symbols.contains_key(name) {
-            return Err(TypeError::SymbolNameAlreadyUsed(name.to_string()));
+            return Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::SymbolNameAlreadyUsed(name.to_owned())));
         }
 
         self.scopes[0].symbols.insert(name.to_string(), Symbol::new(name, SymbolState::Typed(symbol_type)));
@@ -183,13 +184,13 @@ impl SymbolTable {
             if scope.symbols.contains_key(name) {
                 match scope.symbols.get_mut(name) {
                     Some(ref mut s) => s.resolve_type(symbol_type),
-                    None => return Err(TypeError::VariableNotFound(name.to_string())),
+                    None => return Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::VariableNotFound(name.to_owned()))),
                 }
                 return Ok(());
             }
         }
 
-        return Err(TypeError::VariableNotFound(name.to_string()));
+        Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::VariableNotFound(name.to_owned())))
     }
 
     pub fn enter_scope(&mut self) {

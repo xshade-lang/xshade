@@ -1,6 +1,7 @@
+use ::ast::Span;
 use ::type_system::call_signature::CallSignature;
 use ::type_system::structure_members::StructureMembers;
-use ::type_system::error::{ TypeError, TypeCheckResult };
+use ::type_system::error::{ TypeError, ErrorKind, TypeCheckResult };
 use ::type_system::type_environment::TypeReference;
 
 #[derive(Debug, Eq)]
@@ -61,7 +62,7 @@ impl TypeDefinition {
 
     pub fn make_callable(&mut self, signature: CallSignature) -> TypeCheckResult<()> {
         if self.is_callable() {
-            return Err(TypeError::CannotMakeCallable);
+            return Err(TypeError::new(Span::empty(), ErrorKind::CannotMakeCallable));
         }
 
         self.call_signature = Some(signature);
@@ -78,7 +79,7 @@ impl TypeDefinition {
     pub fn get_call_signature_or_err(&self) -> TypeCheckResult<&CallSignature> {
         match self.call_signature {
             Some(ref s) => Ok(s),
-            None => Err(TypeError::NotCallable),
+            None => Err(TypeError::new(Span::empty(), ErrorKind::NotCallable)),
         }
     }
 

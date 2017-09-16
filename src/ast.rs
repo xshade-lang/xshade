@@ -37,6 +37,15 @@ impl Span {
         }
     }
 
+    pub fn empty() -> Span {
+        Span {
+            offset: 0,
+            length: 0,
+            line: 1,
+            column: 1,
+        }
+    }
+
     pub fn from_nom_span(span: &NomSpan) -> Span {
         Span {
             offset: span.offset,

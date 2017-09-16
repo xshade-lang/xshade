@@ -1,5 +1,6 @@
 use ::type_system::type_environment::TypeReference;
-use ::type_system::error::{ TypeError, TypeCheckResult };
+use ::type_system::error::{ TypeError, ErrorKind, TypeCheckResult };
+use ::ast::Span;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct CallSignature {
@@ -23,7 +24,7 @@ impl CallSignature {
         if self.arguments == arguments {
             Ok(())
         }else{
-            Err(TypeError::IncompatibleArguments)
+            Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::IncompatibleArguments))
         }
     }
 

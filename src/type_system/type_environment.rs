@@ -1,5 +1,6 @@
 use ::std::collections::HashMap;
-use ::type_system::error::{ TypeError, TypeCheckResult };
+use ::ast::Span;
+use ::type_system::error::{ TypeError, ErrorKind, TypeCheckResult };
 use ::type_system::type_definition::TypeDefinition;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -54,7 +55,7 @@ impl TypeEnvironment {
     pub fn find_type_or_err(&self, reference: TypeReference) -> TypeCheckResult<&TypeDefinition> {
         let id = reference.get_id();
         if id >= self.types.len() {
-            return Err(TypeError::TypeNotFound("".to_string()));
+            return Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::TypeNotFound("".to_owned())));
         }
 
         Ok(&self.types[id])
@@ -72,7 +73,7 @@ impl TypeEnvironment {
     pub fn find_type_mut_or_err(&mut self, reference: TypeReference) -> TypeCheckResult<&mut TypeDefinition> {
         let id = reference.get_id();
         if id >= self.types.len() {
-            return Err(TypeError::TypeNotFound("".to_string()));
+            return Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::TypeNotFound("".to_owned())));
         }
 
         Ok(&mut self.types[id])
