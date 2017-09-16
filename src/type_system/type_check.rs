@@ -99,8 +99,7 @@ fn check_functions(symbol_table: &mut SymbolTable, functions: &mut Vec<&mut Func
                 Some(t) => t,
                 None => return Err(TypeError::new(argument.argument_type_name.get_span(), ErrorKind::TypeNotFound(argument.argument_type_name.name.to_owned()))),
             };
-
-            //let type_ref = try!(symbol_table.find_type_ref_or_err(&argument.argument_type_name.name));
+            
             argument.argument_type = Some(type_ref);
             try!(symbol_table.add_symbol_with_type(&argument.argument_name.name, type_ref));
             arguments.push(type_ref);
