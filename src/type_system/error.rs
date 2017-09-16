@@ -3,7 +3,7 @@ use ::std::fmt;
 
 pub type TypeCheckResult<T> = Result<T, TypeError>;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum TypeError {
     TypeNotFound(String),
     SymbolNameAlreadyUsed(String),
@@ -16,6 +16,7 @@ pub enum TypeError {
     NotCallable,
     IncompatibleArguments,
     TypeHasNoMember,
+    MemberNotFound,
     CannotInstantiateStructWithArguments,
 }
 
@@ -55,6 +56,9 @@ impl fmt::Display for TypeError {
             TypeError::TypeHasNoMember => {
                 write!(f, "Type has no member.")
             },
+            TypeError::MemberNotFound => {
+                write!(f, "Member not found.")
+            },
             TypeError::CannotInstantiateStructWithArguments => {
                 write!(f, "Cannot instantiate structure with given arguments.")
             },
@@ -76,6 +80,7 @@ impl Error for TypeError {
             TypeError::NotCallable => "Not callable.",
             TypeError::IncompatibleArguments => "Arguments incompatible.",
             TypeError::TypeHasNoMember => "Type has no member.",
+            TypeError::MemberNotFound => "Member not found.",
             TypeError::CannotInstantiateStructWithArguments => "Cannot instantiate structure with given arguments.",
         }
     }

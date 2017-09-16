@@ -102,6 +102,7 @@ fn check_functions(symbol_table: &mut SymbolTable, functions: &mut Vec<&mut Func
 
         let type_ref = try!(symbol_table.find_type_ref_or_err(&f.return_type_name.name));
         f.return_type = Some(type_ref.clone());
+        f.declaring_type = Some(function_type);
 
         let signature = CallSignature::new(arguments, Some(type_ref));
         try!(try!(symbol_table.find_type_mut_or_err(function_type)).make_callable(signature));
@@ -147,16 +148,29 @@ fn check_expression(symbol_table: &mut SymbolTable, expression: &mut ExpressionS
 }
 
 fn check_field_accessor_expression(symbol_table: &mut SymbolTable, field_accessor_expression: &mut FieldAccessorExpression) -> TypeCheckResult<TypeReference> {
-    match symbol_table.find_symbol(&field_accessor_expression.variable_name.name) {
+    let type_ref = match symbol_table.find_symbol(&field_accessor_expression.variable_name.name) {
         Some(symbol) => match symbol.get_type() {
-            Some(t) => {
-                field_accessor_expression.field_type = Some(t);
-                return Ok(t);
-            },
+            Some(t) => t,
             None => return Err(TypeError::CannotInfer(field_accessor_expression.variable_name.name.clone())),
         },
-        None => Err(TypeError::VariableNotFound(field_accessor_expression.variable_name.name.clone())),
-    }
+        None => return Err(TypeError::VariableNotFound(field_accessor_expression.variable_name.name.clone())),
+    };
+    let field_type_ref = match symbol_table.find_type(type_ref) {
+        Some(t) => {
+            if !t.has_member() {
+                return Err(TypeError::TypeHasNoMember);
+            }
+            match t.find_member_type(&field_accessor_expression.field_name.name) {
+                Some(t) => t,
+                None => return Err(TypeError::MemberNotFound),
+            }
+        },
+        None => return Err(TypeError::CannotInfer(field_accessor_expression.variable_name.name.clone())),
+    };
+
+    field_accessor_expression.field_type = Some(field_type_ref);
+
+    Ok(field_type_ref)
 }
 
 fn check_call_expression(symbol_table: &mut SymbolTable, call_expression: &mut CallExpression) -> TypeCheckResult<TypeReference> {
@@ -191,7 +205,7 @@ fn check_struct_instatiation_expression(symbol_table: &mut SymbolTable, struct_i
     match symbol_table.find_type(struct_type) {
         Some(t) => match t.get_member() {
             Some(m) => {
-                if !m.is_assignable_with(x) {
+                if !m.is_assignable_with(&x) {
                     return Err(TypeError::CannotInstantiateStructWithArguments);
                 }
             },
@@ -213,8 +227,7 @@ fn check_infix_expression(symbol_table: &mut SymbolTable, infix_expression: &mut
 
     if left_hand_type != right_hand_type {
         // TODO implicit casts
-        // TODO uncomment
-        // return Err(TypeError::IncompatibleTypes("".to_string(), "".to_string())); // TODO refactor type_environment and symbol_table
+        return Err(TypeError::IncompatibleTypes("".to_owned(), "".to_owned()));
     }
 
     // TODO check if operator is available

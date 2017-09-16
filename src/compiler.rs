@@ -1,10 +1,11 @@
 use ::std::error::Error;
-use ::compile_error::{ CompileError, CompileResult };
+use ::compile_error::{ CompileError, CompileResult, ErrorKind };
 use ::module::Module;
 use ::parser::parse_str;
 use ::type_system::symbol_table::SymbolTable;
 use ::type_system::type_check::type_check;
 use ::type_system::type_environment::TypeEnvironment;
+use ::ast::Span;
 
 fn parse_core_modules(symbols: &mut SymbolTable) -> Result<Module, Box<Error>> {
     let primitives = include_str!("../libcore/primitives.xs");
@@ -43,10 +44,9 @@ impl Compiler {
 
         let mut module = Module::new(module_path.to_owned(), source, ast, false);
 
-
         match type_check(&mut symbols, &mut module) {
             Ok(_) => Ok(module),
-            Err(_) => Err(CompileError::unknown()),
+            Err(e) => Err(CompileError::new(ErrorKind::TypeError(e), Span::new(0, 0, 1, 1))),
         }
     }
     
