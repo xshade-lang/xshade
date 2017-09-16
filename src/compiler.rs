@@ -46,7 +46,11 @@ impl Compiler {
 
         match type_check(&mut symbols, &mut module) {
             Ok(_) => Ok(module),
-            Err(e) => Err(CompileError::new(ErrorKind::TypeError(e), Span::new(0, 0, 1, 1))),
+            Err(e) => {
+                let span = e.get_span();
+                module.set_error(CompileError::new(ErrorKind::TypeError(e), span));
+                Ok(module)
+            },
         }
     }
     

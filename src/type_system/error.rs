@@ -12,7 +12,7 @@ pub enum ErrorKind {
     CastAlreadyDeclared(String, String),
     VariableNotFound(String),
     CannotInfer(String),
-    IncompatibleTypes(String, String),
+    IncompatibleTypes(Span, Span),
     CannotMakeCallable,
     NotCallable,
     IncompatibleArguments,
@@ -33,6 +33,14 @@ impl TypeError {
             span: span,
             kind: kind,
         }
+    }
+
+    pub fn get_span(&self) -> Span {
+        self.span
+    }
+
+    pub fn get_kind(&self) -> &ErrorKind {
+        &self.kind
     }
 }
 
@@ -57,8 +65,8 @@ impl fmt::Display for TypeError {
             ErrorKind::CannotInfer(ref variable_name) => {
                 write!(f, "Cannot infer type for variable \"{}\".", variable_name)
             },
-            ErrorKind::IncompatibleTypes(ref left, ref right) => {
-                write!(f, "Incompatible types \"{}\" and \"{}\".", left, right)
+            ErrorKind::IncompatibleTypes(_, _) => {
+                write!(f, "Incompatible types.")
             },
             ErrorKind::CannotMakeCallable => {
                 write!(f, "Cannot make type callable.")

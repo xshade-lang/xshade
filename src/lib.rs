@@ -16,4 +16,6 @@ mod string_builder;
 pub use ::ast::*;
 pub use api::parse_module;
 
+pub use compile_error::{ CompileError, ErrorKind as CompileErrorKind };
+pub use type_system::error::{ TypeError, ErrorKind as TypeErrorKind };
 pub use compiler::{ Compiler, ModuleResolver };

@@ -94,7 +94,13 @@ fn check_functions(symbol_table: &mut SymbolTable, functions: &mut Vec<&mut Func
         let mut arguments = Vec::new();
         symbol_table.enter_scope();
         for argument in f.arguments.iter_mut() {
-            let type_ref = try!(symbol_table.find_type_ref_or_err(&argument.argument_type_name.name));
+
+            let type_ref = match symbol_table.find_type_ref(&argument.argument_type_name.name) {
+                Some(t) => t,
+                None => return Err(TypeError::new(argument.argument_type_name.get_span(), ErrorKind::TypeNotFound(argument.argument_type_name.name.to_owned()))),
+            };
+
+            //let type_ref = try!(symbol_table.find_type_ref_or_err(&argument.argument_type_name.name));
             argument.argument_type = Some(type_ref);
             try!(symbol_table.add_symbol_with_type(&argument.argument_name.name, type_ref));
             arguments.push(type_ref);
@@ -159,7 +165,7 @@ fn check_field_accessor_expression(symbol_table: &mut SymbolTable, field_accesso
     let field_type_ref = match symbol_table.find_type(type_ref) {
         Some(t) => {
             if !t.has_member() {
-                return Err(TypeError::new(Span::empty(), ErrorKind::TypeHasNoMember));
+                return Err(TypeError::new(field_accessor_expression.get_span(), ErrorKind::TypeHasNoMember));
             }
             match t.find_member_type(&field_accessor_expression.field_name.name) {
                 Some(t) => t,
@@ -228,7 +234,10 @@ fn check_infix_expression(symbol_table: &mut SymbolTable, infix_expression: &mut
 
     if left_hand_type != right_hand_type {
         // TODO implicit casts
-        return Err(TypeError::new(Span::empty(), ErrorKind::IncompatibleTypes("".to_owned(), "".to_owned())));
+
+        let left_span = infix_expression.left_hand.get_span();
+        let right_span = infix_expression.right_hand.get_span();
+        return Err(TypeError::new(Span::from_to(left_span, right_span), ErrorKind::IncompatibleTypes(left_span, right_span)));
     }
 
     // TODO check if operator is available

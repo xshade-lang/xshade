@@ -128,6 +128,19 @@ impl SymbolTable {
         self.types.find_type_mut_or_err(type_ref)
     }
 
+    pub fn find_type_ref(&self, name: &str) -> Option<TypeReference> {
+        for scope in &self.scopes {
+            if scope.types.contains_key(name) {
+                match scope.types.get(name) {
+                    Some(t) => return Some(t.clone()),
+                    None => return None,
+                }
+            }
+        }
+
+        None
+    }
+
     pub fn find_type_ref_or_err(&self, name: &str) -> TypeCheckResult<TypeReference> {
         for scope in &self.scopes {
             if scope.types.contains_key(name) {

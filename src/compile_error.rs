@@ -32,6 +32,14 @@ impl CompileError {
             span: Span::new(0, 0, 1, 1),
         }
     }
+
+    pub fn get_span(&self) -> Span {
+        self.span
+    }
+
+    pub fn get_kind(&self) -> &ErrorKind {
+        &self.kind
+    }
 }
 
 impl fmt::Display for CompileError {
