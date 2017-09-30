@@ -1,3 +1,4 @@
+use ::std::fmt;
 use ::std::str;
 use ::nom_locate::LocatedSpan;
 use ::type_system::type_environment::TypeReference;
@@ -18,7 +19,7 @@ macro_rules! impl_spanned {
     )
 }
 
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[derive(Eq, PartialEq, Copy, Clone)]
 pub struct Span {
     pub offset: usize,
     pub length: usize,
@@ -33,6 +34,15 @@ impl Span {
             length: length,
             line: line,
             column: column,
+        }
+    }
+
+    pub fn empty() -> Span {
+        Span {
+            offset: 0,
+            length: 0,
+            line: 1,
+            column: 1,
         }
     }
 
@@ -52,6 +62,12 @@ impl Span {
             line: from.line,
             column: from.column,
         }
+    }
+}
+
+impl fmt::Debug for Span {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Line {} Column {} Lenght {}", self.line, self.column, self.length)
     }
 }
 

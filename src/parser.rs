@@ -1,7 +1,8 @@
 use ::nom::*;
 use ::nom_locate::LocatedSpan;
 use ::ast::*;
-use ::compile_error::CompileError;
+use ::compile_error::{ CompileError, CompileResult };
+use ::compile_error::ErrorKind as CompileErrorKind;
 
 type NomSpan<'a> = LocatedSpan<&'a str>;
 
@@ -289,7 +290,8 @@ named!(parse_field_accessor_expression<NomSpan, ExpressionStatement>,
 named!(parse_expression_no_left_recursion<NomSpan, ExpressionStatement>,
     alt!(
         parse_struct_instantiation |
-        parse_literal_expression | 
+        parse_literal_expression |
+        parse_field_accessor_expression |
         parse_call_expression |
         parse_variable_expression
     )
@@ -365,7 +367,7 @@ named!(parse_block_declaration<NomSpan, BlockDeclaration>,
     do_parse!(
         statements: parse_block_statements >>
         (BlockDeclaration{
-            span: Span::from_to(statements.first().unwrap().get_span(), statements.last().unwrap().get_span()),
+            span: Span::new(0, 0, 1, 1), // TODO complicated with empty blocks
             statements: statements,
         })
     )
@@ -498,29 +500,29 @@ named!(parse<NomSpan, Vec<ItemKind>>,
     )
 );
 
-pub fn parse_block(program: &str) -> Result<Vec<BlockStatement>, CompileError> {
+pub fn parse_block(program: &str) -> CompileResult<Vec<BlockStatement>> {
     let input = NomSpan::new(program);
     match parse_block_statements(input) {
         IResult::Done(remaining, result) => {
             if remaining.fragment.len() > 0 {
-                return Err(CompileError::unknown());
+                return Err(CompileError::new(CompileErrorKind::ParseError, Span::new(0, 0, 1, 1)));
             }
             Ok(result)
         },
-        _ => Err(CompileError::unknown()),
+        _ => Err(CompileError::new(CompileErrorKind::ParseError, Span::new(0, 0, 1, 1))),
     }
 }
 
-pub fn parse_str(program: &str) -> Result<Vec<ItemKind>, CompileError> {
+pub fn parse_str(program: &str) -> CompileResult<Vec<ItemKind>> {
     let input = NomSpan::new(program);
     match parse(input) {
         IResult::Done(remaining, result) => {
             if remaining.fragment.len() > 0 {
-                return Err(CompileError::unknown());
+                return Err(CompileError::new(CompileErrorKind::ParseError, Span::new(0, 0, 1, 1)));
             }
             Ok(result)
         },
-        _ => Err(CompileError::unknown()),
+        _ => Err(CompileError::new(CompileErrorKind::ParseError, Span::new(0, 0, 1, 1))),
     }
 }
 
@@ -618,7 +620,7 @@ mod tests {
                         function_name: Identifier::new("main", Span::new(3, 4, 1, 4)),
                         arguments: vec![],
                         block: BlockDeclaration {
-                            span: Span::new(19, 11, 1, 20),
+                            span: Span::empty(),
                             statements: vec![
                                 BlockStatement::Return(
                                     ReturnDeclaration {

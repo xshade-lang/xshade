@@ -8,7 +8,7 @@ use ::type_system::type_environment::TypeEnvironment;
 fn parse_core_modules(symbols: &mut SymbolTable) -> Result<Module, Box<Error>> {
     let primitives = include_str!("../libcore/primitives.xs");
     let ast = parse_str(primitives)?;
-    let mut module = Module::from_ast(ast, true);
+    let mut module = Module::new("".to_owned(), primitives.to_owned(), ast, true);
     type_check(symbols, &mut module)?;
     Ok(module)
 }
@@ -20,7 +20,7 @@ pub fn parse_module(program: &str) -> Result<Module, Box<Error>> {
     parse_core_modules(&mut symbols)?;
 
     let ast = parse_str(program)?;
-    let mut module = Module::from_ast(ast, false);
+    let mut module = Module::new("".to_owned(), program.to_owned(), ast, false);
     type_check(&mut symbols, &mut module)?;
     Ok(module)
 }

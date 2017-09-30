@@ -2,8 +2,8 @@ use ::type_system::type_environment::TypeReference;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct StructureMember {
-    member_name: String,
-    member_type: TypeReference,
+    pub member_name: String,
+    pub member_type: TypeReference,
 }
 
 impl StructureMember {
@@ -27,7 +27,16 @@ impl StructureMembers {
         }
     }
 
-    pub fn is_assignable_with(&self, members: Vec<StructureMember>) -> bool {
+    pub fn find_member_type(&self, member_name: &str) -> Option<TypeReference> {
+        for m in self.members.iter() {
+            if m.member_name == member_name {
+                return Some(m.member_type);
+            }
+        }
+        None
+    }
+
+    pub fn is_assignable_with(&self, members: &Vec<StructureMember>) -> bool {
         if members.len() != self.members.len() {
             return false;
         }
@@ -58,7 +67,7 @@ mod tests {
 
         let struct_members = StructureMembers::new(a);
 
-        assert!(struct_members.is_assignable_with(b));
+        assert!(struct_members.is_assignable_with(&b));
     }
 
     #[test]
@@ -68,7 +77,7 @@ mod tests {
 
         let struct_members = StructureMembers::new(a);
 
-        assert!(struct_members.is_assignable_with(b));
+        assert!(struct_members.is_assignable_with(&b));
     }
 
     #[test]
@@ -78,6 +87,6 @@ mod tests {
 
         let struct_members = StructureMembers::new(a);
 
-        assert!(!struct_members.is_assignable_with(b));
+        assert!(!struct_members.is_assignable_with(&b));
     }
 }

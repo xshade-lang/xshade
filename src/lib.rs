@@ -6,6 +6,7 @@ extern crate nom_locate;
 mod type_system;
 
 mod api;
+mod compiler;
 mod module;
 mod compile_error;
 mod ast;
@@ -14,3 +15,7 @@ mod string_builder;
 
 pub use ::ast::*;
 pub use api::parse_module;
+
+pub use compile_error::{ CompileError, ErrorKind as CompileErrorKind };
+pub use type_system::error::{ TypeError, ErrorKind as TypeErrorKind };
+pub use compiler::{ Compiler, ModuleResolver };
