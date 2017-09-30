@@ -620,7 +620,7 @@ mod tests {
                         function_name: Identifier::new("main", Span::new(3, 4, 1, 4)),
                         arguments: vec![],
                         block: BlockDeclaration {
-                            span: Span::new(19, 11, 1, 20),
+                            span: Span::empty(),
                             statements: vec![
                                 BlockStatement::Return(
                                     ReturnDeclaration {
