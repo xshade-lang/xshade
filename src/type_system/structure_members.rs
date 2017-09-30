@@ -67,7 +67,7 @@ mod tests {
 
         let struct_members = StructureMembers::new(a);
 
-        assert!(struct_members.is_assignable_with(b));
+        assert!(struct_members.is_assignable_with(&b));
     }
 
     #[test]
@@ -77,7 +77,7 @@ mod tests {
 
         let struct_members = StructureMembers::new(a);
 
-        assert!(struct_members.is_assignable_with(b));
+        assert!(struct_members.is_assignable_with(&b));
     }
 
     #[test]
@@ -87,6 +87,6 @@ mod tests {
 
         let struct_members = StructureMembers::new(a);
 
-        assert!(!struct_members.is_assignable_with(b));
+        assert!(!struct_members.is_assignable_with(&b));
     }
 }
