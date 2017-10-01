@@ -7,9 +7,10 @@ mod data_structures;
 mod type_system;
 
 mod api;
-mod compiler;
-mod module;
 mod compile_error;
+mod compiler;
+mod context;
+mod module;
 mod ast;
 mod parser;
 mod string_builder;

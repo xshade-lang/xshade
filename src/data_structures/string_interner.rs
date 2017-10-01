@@ -2,14 +2,22 @@ use std::collections::HashMap;
 
 pub type StringId = usize;
 
-#[derive(Default)]
+#[derive(Debug)]
 pub struct StringInterner {
 	storage : HashMap<StringId, String>,
 	index : StringId,
 }
 
 impl StringInterner {
-	fn find(&self, id : StringId) -> Option<String> {
+
+	pub fn new() -> StringInterner {
+		StringInterner {
+			storage: HashMap::new(),
+			index: 0,
+		}
+	}
+
+	pub fn find(&self, id : StringId) -> Option<String> {
 		let tmp: Option<&String> = self.storage.get(&id);
 		match tmp {
 			Some(s) => Some(s.clone()),
@@ -17,7 +25,7 @@ impl StringInterner {
 		}
 	}
 	
-	fn intern(&mut self, s: &str) -> StringId {
+	pub fn intern(&mut self, s: &str) -> StringId {
 		let not_already_contained : bool = self.storage.values().filter(|&val| *val == s).count() == 0;
 		if not_already_contained { 
 	        self.index += 1;
@@ -28,15 +36,15 @@ impl StringInterner {
 			0
 		}
 	}
-	
-}
 
-fn print_interner(interner : &mut StringInterner) {
-	println!("Printing current interner values:");
-	for (key, value) in &interner.storage {
-        println!("  Id: {} / Value: {}", key, value);
-    }
-	println!("");
+	pub fn debug_print(&self) {
+		println!("");
+		for (key, value) in &self.storage {
+			println!("  Id: {} / Value: {}", key, value);
+		}
+		println!("");
+	}
+	
 }
 
 #[cfg(test)]
@@ -49,7 +57,7 @@ mod tests {
 
     #[test]
     fn basic_insert_read() {
-        let mut interner: StringInterner = Default::default();
+        let mut interner = StringInterner::new();
 		
 		let id0 : StringId = interner.intern("Test");
 		let id1 : StringId = interner.intern("Test2");	
@@ -66,7 +74,7 @@ mod tests {
 	
 	#[test]
 	fn insert_duplicate() {
-		let mut interner: StringInterner = Default::default();
+        let mut interner = StringInterner::new();
 		
 		let id0 : StringId = interner.intern("Test");
 		let id1 : StringId = interner.intern("Test");	
@@ -83,7 +91,7 @@ mod tests {
 	
 	#[test]
 	fn insert_in_subroutine() {
-		let mut interner: StringInterner = Default::default();
+        let mut interner = StringInterner::new();
 		let id0 : StringId = interner.intern("Test");
 		let id1 : StringId = interner.intern("Test2");	
 		
