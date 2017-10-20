@@ -4,6 +4,7 @@ extern crate nom;
 extern crate nom_locate;
 
 mod data_structures;
+mod mir;
 mod type_system;
 
 mod api;
