@@ -1,10 +1,11 @@
 use ::mir::mir::*;
 use ::mir::visitor::TypedMirWalker;
+use ::type_system::type_environment::TypeReference;
 
 pub struct MirTypeChecker;
 
 impl TypedMirWalker for MirTypeChecker {
-    type T = usize;
+    type T = TypeReference;
 
     fn visit(&mut self, node: &Mir) -> Self::T {
         match *node {

@@ -1,10 +1,43 @@
 use ::mir::mir::*;
+use ::mir::container::*;
 
-pub trait MirWalker {
-    fn visit(&mut self, node: &Mir);
+pub struct Visitor {
+    visitor_impl: Box<MirVisitor>,
+}
+
+impl Visitor {
+    pub fn new(visitor_impl: Box<MirVisitor>) -> Visitor {
+        Visitor {
+            visitor_impl: visitor_impl,
+        }
+    }
+
+    pub fn visit(&mut self, reference: MirReference, container: &mut MirContainer) {
+        let next: Vec<MirReference> = if let Some(node) = container.find(reference) {
+            match *node {
+                Mir::EntryPoint(ref n) => {
+                    self.visitor_impl.visit_entry_point(n);
+                    vec![n.next]
+                },
+                Mir::ExitPoint(ref n) => {
+                    self.visitor_impl.visit_exit_point(n);
+                    vec![]
+                },
+                _ => unimplemented!(),
+            }
+        } else {
+            vec![]
+        };
+
+        for n in next {
+            self.visit(n, container);
+        }
+    }
+}
+
+pub trait MirVisitor {
     fn visit_entry_point(&mut self, node: &MirEntryPoint);
-    fn visit_constant(&mut self, node: &MirConstant);
-    fn visit_bin_op(&mut self, node: &MirBinOp);
+    fn visit_exit_point(&mut self, node: &MirExitPoint);
 }
 
 pub trait TypedMirWalker {
