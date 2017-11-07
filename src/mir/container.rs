@@ -1,15 +1,18 @@
 use std::collections::HashMap;
 use ::mir::mir::Mir;
+use ::type_system::type_environment::TypeReference;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct MirVariable {
     id: usize,
+    variable_type: TypeReference,
 }
 
 impl MirVariable {
-    fn new(id: usize) -> MirVariable {
+    fn new(id: usize, variable_type: TypeReference) -> MirVariable {
         MirVariable {
             id: id,
+            variable_type: variable_type,
         }
     }
 }

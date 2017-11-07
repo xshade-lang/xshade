@@ -1,4 +1,4 @@
-use mir::container::{ MirVariable, MirReference };
+use ::mir::container::{ MirVariable, MirReference };
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Mir {
