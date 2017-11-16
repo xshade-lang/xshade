@@ -1,51 +1,53 @@
 use ::mir::mir::*;
 use ::mir::container::*;
 
-pub struct Visitor {
-    visitor_impl: Box<MirVisitor>,
-}
+pub trait MirWalker {
 
-impl Visitor {
-    pub fn new(visitor_impl: Box<MirVisitor>) -> Visitor {
-        Visitor {
-            visitor_impl: visitor_impl,
-        }
-    }
-
-    pub fn visit(&mut self, reference: MirReference, container: &mut MirContainer) {
-        let next: Vec<MirReference> = if let Some(node) = container.find(reference) {
-            match *node {
-                Mir::EntryPoint(ref n) => {
-                    self.visitor_impl.visit_entry_point(n);
-                    vec![n.next]
-                },
-                Mir::ExitPoint(ref n) => {
-                    self.visitor_impl.visit_exit_point(n);
-                    vec![]
-                },
-                _ => unimplemented!(),
+    fn visit(&mut self, reference: MirReference, container: &MirContainer) {
+        if let Some(wrapper) = container.find_mut(reference) {
+            match *wrapper {
+                Mir::EntryPoint(ref mut node) => self.visit_entry_point(node, container),
+                Mir::ExitPoint(ref mut node) => self.visit_exit_point(node, container),
+                Mir::Loop(ref mut node) => self.visit_loop(node, container),
+                Mir::LoopMerge(ref mut node) => self.visit_loop_merge(node, container),
+                Mir::Constant(ref mut node) => self.visit_constant(node, container),
+                Mir::BinOp(ref mut node) => self.visit_bin_op(node, container),
             }
-        } else {
-            vec![]
-        };
-
-        for n in next {
-            self.visit(n, container);
         }
     }
-}
 
-pub trait MirVisitor {
-    fn visit_entry_point(&mut self, node: &MirEntryPoint);
-    fn visit_exit_point(&mut self, node: &MirExitPoint);
+    fn visit_entry_point(&mut self, node: &MirEntryPoint, container: &MirContainer);
+    fn visit_exit_point(&mut self, node: &MirExitPoint, container: &MirContainer);
+    fn visit_loop(&mut self, node: &MirLoop, container: &MirContainer);
+    fn visit_loop_merge(&mut self, node: &MirLoopMerge, container: &MirContainer);
+    fn visit_constant(&mut self, node: &MirConstant, container: &MirContainer);
+    fn visit_bin_op(&mut self, node: &MirBinOp, container: &MirContainer);
 }
 
 pub trait TypedMirWalker {
     type T;
-    fn visit(&mut self, node: &Mir) -> Self::T;
-    fn visit_entry_point(&mut self, node: &MirEntryPoint) -> Self::T;
-    fn visit_constant(&mut self, node: &MirConstant) -> Self::T;
-    fn visit_bin_op(&mut self, node: &MirBinOp) -> Self::T;
+
+    fn visit(&mut self, reference: MirReference, container: &MirContainer) -> Option<Self::T> {
+        if let Some(wrapper) = container.find_mut(reference) {
+            match *wrapper {
+                Mir::EntryPoint(ref mut node) => self.visit_entry_point(node, container),
+                Mir::ExitPoint(ref mut node) => self.visit_exit_point(node, container),
+                Mir::Loop(ref mut node) => self.visit_loop(node, container),
+                Mir::LoopMerge(ref mut node) => self.visit_loop_merge(node, container),
+                Mir::Constant(ref mut node) => self.visit_constant(node, container),
+                Mir::BinOp(ref mut node) => self.visit_bin_op(node, container),
+            }
+        } else {
+            None
+        }
+    }
+
+    fn visit_entry_point(&mut self, node: &MirEntryPoint, container: &MirContainer) -> Option<Self::T>;
+    fn visit_exit_point(&mut self, node: &MirExitPoint, container: &MirContainer) -> Option<Self::T>;
+    fn visit_loop(&mut self, node: &MirLoop, container: &MirContainer) -> Option<Self::T>;
+    fn visit_loop_merge(&mut self, node: &MirLoopMerge, container: &MirContainer) -> Option<Self::T>;
+    fn visit_constant(&mut self, node: &MirConstant, container: &MirContainer) -> Option<Self::T>;
+    fn visit_bin_op(&mut self, node: &MirBinOp, container: &MirContainer) -> Option<Self::T>;
 }
 
 pub trait MirReplacer {

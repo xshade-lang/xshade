@@ -5,7 +5,7 @@ pub enum Mir {
     EntryPoint(MirEntryPoint),
     ExitPoint(MirExitPoint),
     Loop(MirLoop),
-    LoopMerge(MirLoop),
+    LoopMerge(MirLoopMerge),
     Constant(MirConstant),
     BinOp(MirBinOp)
 }
@@ -27,14 +27,14 @@ pub struct MirLoop {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct MirLoopMerge {
-    next: MirReference,
+    pub next: MirReference,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct MirConstant {
     pub value: Vec<u8>,
     pub variable: MirVariable,
-    next: MirReference,
+    pub next: MirReference,
 }
 
 #[derive(Debug, Eq, PartialEq)]
