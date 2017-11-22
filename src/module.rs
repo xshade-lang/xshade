@@ -1,16 +1,47 @@
 use ::ast::*;
+use ::compile_error::CompileError;
 
 #[derive(Debug)]
 pub struct Module {
+    path: String,
+    source: String,
     ast: Vec<ItemKind>,
     is_core_module: bool,
+    error: Option<CompileError>,
 }
 
 impl Module {
-    pub fn from_ast(ast: Vec<ItemKind>, is_core_module: bool) -> Module {
+
+    pub fn new(path: String, source: String, ast: Vec<ItemKind>, is_core_module: bool) -> Module {
         Module {
+            path: path,
+            source: source,
             ast: ast,
             is_core_module: is_core_module,
+            error: None,
+        }
+    }
+
+    pub fn get_path(&self) -> &str {
+        &self.path
+    }
+
+    pub fn get_source(&self) -> &str {
+        &self.source
+    }
+
+    pub fn has_error(&self) -> bool {
+        self.error.is_some()
+    }
+
+    pub fn set_error(&mut self, error: CompileError) {
+        self.error = Some(error);
+    }
+
+    pub fn get_error(&self) -> Option<&CompileError> {
+        match self.error {
+            Some(ref e) => Some(&e),
+            None => None,
         }
     }
 

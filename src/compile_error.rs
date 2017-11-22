@@ -1,12 +1,44 @@
 use std::error::Error;
 use std::fmt;
+use ::type_system::error::TypeError;
+use ::ast::Span;
+
+pub type CompileResult<T> = Result<T, CompileError>;
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct CompileError;
+pub enum ErrorKind {
+    Unknown,
+    ParseError,
+    TypeError(TypeError),
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct CompileError {
+    kind: ErrorKind,
+    span: Span,
+}
 
 impl CompileError {
-    pub fn new() -> CompileError {
-        CompileError
+    pub fn new(kind: ErrorKind, span: Span) -> CompileError {
+        CompileError {
+            kind: kind,
+            span: span,
+        }
+    }
+
+    pub fn unknown() -> CompileError {
+        CompileError {
+            kind: ErrorKind::Unknown,
+            span: Span::new(0, 0, 1, 1),
+        }
+    }
+
+    pub fn get_span(&self) -> Span {
+        self.span
+    }
+
+    pub fn get_kind(&self) -> &ErrorKind {
+        &self.kind
     }
 }
 
@@ -22,6 +54,10 @@ impl Error for CompileError {
     }
 
     fn cause(&self) -> Option<&Error> {
-        None
+        match self.kind {
+            ErrorKind::Unknown => None,
+            ErrorKind::TypeError(ref t) => Some(t),
+            ErrorKind::ParseError => None,
+        }
     }
 }

@@ -1,61 +1,89 @@
 use ::std::error::Error;
 use ::std::fmt;
+use ::ast::Span;
 
 pub type TypeCheckResult<T> = Result<T, TypeError>;
 
-#[derive(Debug)]
-pub enum TypeError {
+#[derive(Debug, Eq, PartialEq)]
+pub enum ErrorKind {
     TypeNotFound(String),
     SymbolNameAlreadyUsed(String),
     SyntaxOnlyValidInCoreModule,
     CastAlreadyDeclared(String, String),
     VariableNotFound(String),
     CannotInfer(String),
-    IncompatibleTypes(String, String),
+    IncompatibleTypes(Span, Span),
     CannotMakeCallable,
     NotCallable,
     IncompatibleArguments,
     TypeHasNoMember,
+    MemberNotFound,
     CannotInstantiateStructWithArguments,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct TypeError {
+    span: Span,
+    kind: ErrorKind,
+}
+
+impl TypeError {
+    pub fn new(span: Span, kind: ErrorKind) -> TypeError {
+        TypeError {
+            span: span,
+            kind: kind,
+        }
+    }
+
+    pub fn get_span(&self) -> Span {
+        self.span
+    }
+
+    pub fn get_kind(&self) -> &ErrorKind {
+        &self.kind
+    }
 }
 
 impl fmt::Display for TypeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            TypeError::TypeNotFound(ref type_name) => {
+        match self.kind {
+            ErrorKind::TypeNotFound(ref type_name) => {
                 write!(f, "Unknown type \"{}\".", type_name)
             },
-            TypeError::SymbolNameAlreadyUsed(ref symbol_name) => {
+            ErrorKind::SymbolNameAlreadyUsed(ref symbol_name) => {
                 write!(f, "Symbol \"{}\" already declared.", symbol_name)
             },
-            TypeError::SyntaxOnlyValidInCoreModule => {
+            ErrorKind::SyntaxOnlyValidInCoreModule => {
                 write!(f, "Syntax only valid in core module.")
             },
-            TypeError::CastAlreadyDeclared(ref from, ref to) => {
+            ErrorKind::CastAlreadyDeclared(ref from, ref to) => {
                 write!(f, "Cast from \"{}\" to \"{}\" already declared.", from, to)
             },
-            TypeError::VariableNotFound(ref variable_name) => {
+            ErrorKind::VariableNotFound(ref variable_name) => {
                 write!(f, "Unknown variable \"{}\".", variable_name)
             },
-            TypeError::CannotInfer(ref variable_name) => {
+            ErrorKind::CannotInfer(ref variable_name) => {
                 write!(f, "Cannot infer type for variable \"{}\".", variable_name)
             },
-            TypeError::IncompatibleTypes(ref left, ref right) => {
-                write!(f, "Incompatible types \"{}\" and \"{}\".", left, right)
+            ErrorKind::IncompatibleTypes(_, _) => {
+                write!(f, "Incompatible types.")
             },
-            TypeError::CannotMakeCallable => {
+            ErrorKind::CannotMakeCallable => {
                 write!(f, "Cannot make type callable.")
             },
-            TypeError::NotCallable => {
+            ErrorKind::NotCallable => {
                 write!(f, "Not callable.")
             },
-            TypeError::IncompatibleArguments => {
+            ErrorKind::IncompatibleArguments => {
                 write!(f, "Arguments incompatible.")
             },
-            TypeError::TypeHasNoMember => {
+            ErrorKind::TypeHasNoMember => {
                 write!(f, "Type has no member.")
             },
-            TypeError::CannotInstantiateStructWithArguments => {
+            ErrorKind::MemberNotFound => {
+                write!(f, "Member not found.")
+            },
+            ErrorKind::CannotInstantiateStructWithArguments => {
                 write!(f, "Cannot instantiate structure with given arguments.")
             },
         }
@@ -64,19 +92,20 @@ impl fmt::Display for TypeError {
 
 impl Error for TypeError {
     fn description(&self) -> &str {
-        match *self {
-            TypeError::TypeNotFound(_) => "Unknown type.",
-            TypeError::SymbolNameAlreadyUsed(_) => "Symbol name already declared.",
-            TypeError::SyntaxOnlyValidInCoreModule => "Syntax only valid in core module.",
-            TypeError::CastAlreadyDeclared(_, _) => "Cast already declared.",
-            TypeError::VariableNotFound(_) => "Unknown type.",
-            TypeError::CannotInfer(_) => "Cannot infer type.",
-            TypeError::IncompatibleTypes(_, _) => "Incompatible types.",
-            TypeError::CannotMakeCallable => "Cannot make type callable.",
-            TypeError::NotCallable => "Not callable.",
-            TypeError::IncompatibleArguments => "Arguments incompatible.",
-            TypeError::TypeHasNoMember => "Type has no member.",
-            TypeError::CannotInstantiateStructWithArguments => "Cannot instantiate structure with given arguments.",
+        match self.kind {
+            ErrorKind::TypeNotFound(_) => "Unknown type.",
+            ErrorKind::SymbolNameAlreadyUsed(_) => "Symbol name already declared.",
+            ErrorKind::SyntaxOnlyValidInCoreModule => "Syntax only valid in core module.",
+            ErrorKind::CastAlreadyDeclared(_, _) => "Cast already declared.",
+            ErrorKind::VariableNotFound(_) => "Unknown type.",
+            ErrorKind::CannotInfer(_) => "Cannot infer type.",
+            ErrorKind::IncompatibleTypes(_, _) => "Incompatible types.",
+            ErrorKind::CannotMakeCallable => "Cannot make type callable.",
+            ErrorKind::NotCallable => "Not callable.",
+            ErrorKind::IncompatibleArguments => "Arguments incompatible.",
+            ErrorKind::TypeHasNoMember => "Type has no member.",
+            ErrorKind::MemberNotFound => "Member not found.",
+            ErrorKind::CannotInstantiateStructWithArguments => "Cannot instantiate structure with given arguments.",
         }
     }
 }
