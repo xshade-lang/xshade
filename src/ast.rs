@@ -118,7 +118,8 @@ impl_spanned!(ConstantDefinition);
 pub struct ProgramDefinition {
     pub span: Span,
     pub program_name: Identifier,
-    pub program_bindings: Vec<ProgramBindingDefinition>,
+    pub program_bindings: Option<Vec<ProgramBindingDefinition>>,
+    pub program_stages: Vec<ProgramStageDefinition>,
 }
 
 impl_spanned!(ProgramDefinition);
@@ -131,6 +132,16 @@ pub struct ProgramBindingDefinition {
 }
 
 impl_spanned!(ProgramBindingDefinition);
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct ProgramBindableDeclaration { 
+    pub span: Span,
+    pub bindable_name: Identifier,
+    pub bindable_type_name: TypeIdentifier,
+    pub declaring_type: Option<TypeReference>,
+}
+
+impl_spanned!(ProgramBindableDeclaration);
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct StructDefinition {
@@ -174,6 +185,20 @@ pub struct FunctionDeclaration {
 }
 
 impl_spanned!(FunctionDeclaration);
+
+// Implement here, as we share the function declaration's arguments type
+#[derive(Debug, Eq, PartialEq)]
+pub struct ProgramStageDefinition { 
+    pub span: Span,
+    pub stage_name: Identifier,
+    pub arguments: Vec<FunctionArgumentDeclaration>,
+    pub block: BlockDeclaration,
+    pub return_type_name: TypeIdentifier,
+    pub return_type: Option<TypeReference>,
+    pub declaring_type: Option<TypeReference>,
+}
+
+impl_spanned!(ProgramStageDefinition);
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct StructFieldInitializerExpression {

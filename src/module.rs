@@ -71,6 +71,7 @@ impl Module {
         programs
     }
 
+
     pub fn find_structs(&self) -> Vec<&StructDefinition> {
         let mut structs = Vec::new();
         for item in &self.ast {

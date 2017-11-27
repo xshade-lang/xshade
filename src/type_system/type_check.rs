@@ -7,13 +7,19 @@ use ::type_system::symbol_table::SymbolTable;
 use ::type_system::type_environment::{ TypeReference };
 
 pub fn type_check(symbol_table: &mut SymbolTable, module: &mut Module) -> TypeCheckResult<()> {
+    println!("Checking Types!");
+
     symbol_table.enter_scope();
     try!(check_primitives(module.is_core(), symbol_table, &mut module.find_primitives_mut()));
     try!(check_structs(symbol_table, &mut module.find_structs_mut()));
     try!(check_casts(module.is_core(), symbol_table, &mut module.find_casts_mut()));
     try!(check_constant(symbol_table, &mut module.find_constants_mut()));
     try!(check_functions(symbol_table, &mut module.find_functions_mut()));
+    try!(check_programs(symbol_table, &mut module.find_programs_mut()));
     symbol_table.leave_scope();
+    
+    println!("Done Types!");
+
     Ok(())
 }
 
@@ -45,6 +51,8 @@ fn check_structs(symbol_table: &mut SymbolTable, structs: &mut Vec<&mut StructDe
         let mut t = try!(symbol_table.find_type_mut_or_err(s.declaring_type.unwrap())); //TODO ugly unwrap
         try!(t.set_members(StructureMembers::new(member_list)));
     }
+
+    println!("Current symbol_table: {:#?}", symbol_table);
     
     Ok(())
 }
@@ -118,6 +126,44 @@ fn check_functions(symbol_table: &mut SymbolTable, functions: &mut Vec<&mut Func
     Ok(())
 }
 
+fn check_programs(symbol_table: &mut SymbolTable, programs: &mut Vec<&mut ProgramDefinition>) -> TypeCheckResult<()> {
+    //println!("Checking programs {:#?}", programs);
+
+    for p in programs.iter_mut() {
+        //println!("Checking program {:#?}", p);
+        for s in p.program_stages.iter_mut() {
+            //println!("Checking stage {:#?}", s);
+            let stage_type = try!(symbol_table.create_type(&s.stage_name.name));
+            try!(symbol_table.add_symbol_with_type(&s.stage_name.name, stage_type));
+
+            let mut arguments = Vec::new();
+            symbol_table.enter_scope();
+            for argument in s.arguments.iter_mut() {
+
+                let type_ref = match symbol_table.find_type_ref(&argument.argument_type_name.name) {
+                    Some(t) => t,
+                    None => return Err(TypeError::new(argument.argument_type_name.get_span(), ErrorKind::TypeNotFound(argument.argument_type_name.name.to_owned()))),
+                };
+                
+                argument.argument_type = Some(type_ref);
+                try!(symbol_table.add_symbol_with_type(&argument.argument_name.name, type_ref));
+                arguments.push(type_ref);
+            }
+
+            let type_ref = try!(symbol_table.find_type_ref_or_err(&s.return_type_name.name));
+            s.return_type = Some(type_ref.clone());
+            s.declaring_type = Some(stage_type);
+
+            let signature = CallSignature::new(arguments, Some(type_ref));
+            try!(try!(symbol_table.find_type_mut_or_err(stage_type)).make_callable(signature));
+
+            try!(check_block(symbol_table, &mut s.block));
+            symbol_table.leave_scope();
+        }
+    }
+    Ok(())
+}
+
 fn check_block(symbol_table: &mut SymbolTable, block: &mut BlockDeclaration) -> TypeCheckResult<()> {
     symbol_table.enter_scope();
     for s in block.statements.iter_mut() {
@@ -166,6 +212,7 @@ fn check_field_accessor_expression(symbol_table: &mut SymbolTable, field_accesso
             if !t.has_member() {
                 return Err(TypeError::new(field_accessor_expression.get_span(), ErrorKind::TypeHasNoMember));
             }
+
             match t.find_member_type(&field_accessor_expression.field_name.name) {
                 Some(t) => t,
                 None => return Err(TypeError::new(Span::empty(), ErrorKind::MemberNotFound)),

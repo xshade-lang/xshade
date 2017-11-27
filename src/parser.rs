@@ -77,14 +77,57 @@ named!(parse_program<NomSpan, ItemKind>,
         from: ws!(tag!("program")) >>
         program_name: parse_symbol_declaration >>
         ws!(tag!("{")) >>
-        program_bindings: ws!(separated_list!(tag!(","), parse_program_binding)) >>
+        program_bindings: opt!(ws!(separated_list!(tag!(","), parse_program_binding))) >>
+        program_stages: many0!(ws!(parse_stage)) >> 
         opt!(ws!(tag!(","))) >>
         to: ws!(tag!("}")) >>
         (ItemKind::Program(ProgramDefinition{
             span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
             program_name: program_name,
             program_bindings: program_bindings,
+            program_stages: program_stages,
         }))
+    )
+);
+
+named!(parse_stage<NomSpan, ProgramStageDefinition>,    
+    do_parse!(
+        from: ws!(tag!("stage")) >>
+        stage_name: parse_symbol_declaration >>
+        ws!(tag!("(")) >>
+        arguments: ws!(separated_list!(tag!(","), parse_function_argument)) >>
+        ws!(tag!(")")) >>
+        ws!(tag!("->")) >>
+        return_type_name: parse_type_declaration >>
+        ws!(tag!("{")) >>
+        block: parse_block_declaration >>
+        to: ws!(tag!("}")) >>        
+         (ProgramStageDefinition{
+            span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
+            stage_name: stage_name,
+            arguments: arguments,
+            block: block,
+            return_type_name: return_type_name,
+            return_type: None,
+            declaring_type: None,
+        })       
+    )
+);
+
+named!(parse_bindable<NomSpan, ProgramBindableDeclaration>,    
+    do_parse!(
+        from: ws!(tag!("bindable")) >>
+        bindable_name: parse_symbol_declaration >>
+        ws!(tag!(":")) >>
+        bindable_type: parse_type_declaration >>
+        to: ws!(tag!(";")) >>        
+         (ProgramBindableDeclaration{
+            span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
+            bindable_name: bindable_name,
+            bindable_type_name: bindable_type,
+            declaring_type: None
+        })
+        
     )
 );
 
