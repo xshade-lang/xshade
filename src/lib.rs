@@ -5,6 +5,7 @@ extern crate nom_locate;
 
 mod data_structures;
 mod type_system;
+mod passes;
 
 mod api;
 mod compiler;
