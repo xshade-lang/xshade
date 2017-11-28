@@ -8,8 +8,6 @@ use ::type_system::symbol_table::SymbolTable;
 use ::type_system::type_environment::{ TypeReference };
 
 pub fn type_check(symbol_table: &mut SymbolTable, module: &mut Module) -> TypeCheckResult<()> {
-    println!("Checking Types!");
-
     symbol_table.enter_scope();
     try!(check_primitives(module.is_core(), symbol_table, &mut module.find_primitives_mut()));
     try!(check_structs(symbol_table, &mut module.find_structs_mut()));
@@ -18,9 +16,6 @@ pub fn type_check(symbol_table: &mut SymbolTable, module: &mut Module) -> TypeCh
     try!(check_functions(symbol_table, &mut module.find_functions_mut()));
     try!(check_programs(symbol_table, &mut module.find_programs_mut()));
     symbol_table.leave_scope();
-    
-    println!("Done Checking Types!");
-    println!("Current symbol_table: {:#?}", symbol_table);
 
     Ok(())
 }
@@ -127,57 +122,98 @@ fn check_functions(symbol_table: &mut SymbolTable, functions: &mut Vec<&mut Func
     Ok(())
 }
 
+fn check_stages(symbol_table: &mut SymbolTable, program: &mut ProgramDefinition, stage_trace: &mut HashMap<String, i32>) -> TypeCheckResult<()> {
+    let program_name: String = program.program_name.name.to_owned(); // Required, due to borrowing issues...
+    for s in program.program_stages.iter_mut() {        
+        let stage_type_ref = 
+        match symbol_table.find_type_ref(&s.stage_name.name) {
+            Some(_) => return Err(TypeError::new(s.get_span(), ErrorKind::ProgramTypeTooManyStageInstances(program_name.clone(), (s.stage_name.name).to_owned()))),
+            None => (),
+        };
+
+        let stage_type = try!(symbol_table.create_type(&s.stage_name.name));
+        try!(symbol_table.add_symbol_with_type(&s.stage_name.name, stage_type));
+
+        let mut arguments = Vec::new();
+        symbol_table.enter_scope();
+        for argument in s.arguments.iter_mut() {
+
+            let type_ref = match symbol_table.find_type_ref(&argument.argument_type_name.name) {
+                Some(t) => t,
+                None => return Err(TypeError::new(argument.argument_type_name.get_span(), ErrorKind::TypeNotFound(argument.argument_type_name.name.to_owned()))),
+            };
+            
+            argument.argument_type = Some(type_ref);
+            try!(symbol_table.add_symbol_with_type(&argument.argument_name.name, type_ref));
+            arguments.push(type_ref);
+        }
+
+        let type_ref = try!(symbol_table.find_type_ref_or_err(&s.return_type_name.name));
+        s.return_type = Some(type_ref.clone());
+        s.declaring_type = Some(stage_type);
+
+        let signature = CallSignature::new(arguments, Some(type_ref));
+        try!(try!(symbol_table.find_type_mut_or_err(stage_type)).make_callable(signature));
+
+        try!(check_block(symbol_table, &mut s.block));
+        symbol_table.leave_scope();
+        
+        *stage_trace.entry(s.stage_name.name.clone()).or_insert(0) += 1;
+    }
+    Ok(())
+}
+
 fn check_programs(symbol_table: &mut SymbolTable, programs: &mut Vec<&mut ProgramDefinition>) -> TypeCheckResult<()> {
     for p in programs.iter_mut() {
-        let mut stageTrace = HashMap::new();
-        
-        {
-            for s in p.program_stages.iter_mut() {
-                let stage_type = try!(symbol_table.create_type(&s.stage_name.name));
-                try!(symbol_table.add_symbol_with_type(&s.stage_name.name, stage_type));
+        symbol_table.enter_scope();
+    
+        let mut stage_trace = HashMap::new();
 
-                let mut arguments = Vec::new();
-                symbol_table.enter_scope();
-                for argument in s.arguments.iter_mut() {
-
-                    let type_ref = match symbol_table.find_type_ref(&argument.argument_type_name.name) {
-                        Some(t) => t,
-                        None => return Err(TypeError::new(argument.argument_type_name.get_span(), ErrorKind::TypeNotFound(argument.argument_type_name.name.to_owned()))),
-                    };
-                    
-                    argument.argument_type = Some(type_ref);
-                    try!(symbol_table.add_symbol_with_type(&argument.argument_name.name, type_ref));
-                    arguments.push(type_ref);
-                }
-
-                let type_ref = try!(symbol_table.find_type_ref_or_err(&s.return_type_name.name));
-                s.return_type = Some(type_ref.clone());
-                s.declaring_type = Some(stage_type);
-
-                let signature = CallSignature::new(arguments, Some(type_ref));
-                try!(try!(symbol_table.find_type_mut_or_err(stage_type)).make_callable(signature));
-
-                try!(check_block(symbol_table, &mut s.block));
-                symbol_table.leave_scope();
-                
-                *stageTrace.entry(&*s.stage_name.name).or_insert(0) += 1;
-            }
-        }
+        try!(check_stages(symbol_table, p, &mut stage_trace));
 
         // 
         // Perform program analysis and verification:
         // 1. Is at least a vertex and fragment stage available
-        // 2. Are there duplicate stages?
+        // (2. Are there duplicate stages?) => Implicitly handled by check_stages(...)...
         // 3. Is the input signature to vertex stage valid?
         // 4. Are the signatures between vertex and fragment stage compatible?
         // 
-        if !stageTrace.contains_key("vertex") {
-            return Err(TypeError::new((&p).get_span(), ErrorKind::TypeNotFound("vertex".to_owned())))
+
+        // Program consistency check
+        if !stage_trace.contains_key("vertex") {
+            return Err(TypeError::new(p.get_span(), ErrorKind::TypeNotFound("vertex".to_owned())))
         }
 
-        if !stageTrace.contains_key("fragment") {
-            return Err(TypeError::new((&p).get_span(), ErrorKind::TypeNotFound("fragment".to_owned())))
+        if !stage_trace.contains_key("fragment") {
+            return Err(TypeError::new(p.get_span(), ErrorKind::TypeNotFound("fragment".to_owned())))
         }
+
+        // Signature checks!
+        let vertex_stage   = p.program_stages.iter().find(|&s| s.stage_name.name == "vertex").unwrap();
+        let fragment_stage = p.program_stages.iter().find(|&s| s.stage_name.name == "fragment").unwrap();
+
+        let vertex_stage_arguments:   & Vec<FunctionArgumentDeclaration> = &vertex_stage.arguments;
+        let fragment_stage_arguments: & Vec<FunctionArgumentDeclaration> = &fragment_stage.arguments;
+
+        // for vertex_stage_argument in vertex_stage_arguments.iter() {
+        //     // Any constraints? -> So far not... 
+        //     ()
+        // }
+
+        if !fragment_stage_arguments.len() == 1 {
+            // Invalid argument count for fragment shader
+            return Err(TypeError::new(p.get_span(), ErrorKind::ProgramStageTooManyArguments(p.program_name.name.to_owned(), "fragment".to_owned())))
+        }        
+
+        let vertex_output_type:     String = vertex_stage.return_type_name.name.to_owned();
+        let fragment_argument_type: String = fragment_stage_arguments[0].argument_type_name.name.to_owned();
+
+        if vertex_output_type != fragment_argument_type { 
+            // Vertex Output does not match fragment input
+            return Err(TypeError::new(p.get_span(), ErrorKind::ProgramStageSignatureMismatch("vertex".to_owned(), "fragment".to_owned(), vertex_output_type, fragment_argument_type)))
+        }
+        
+        symbol_table.leave_scope();
     }
     Ok(())
 }

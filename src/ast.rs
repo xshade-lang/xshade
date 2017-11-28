@@ -118,30 +118,10 @@ impl_spanned!(ConstantDefinition);
 pub struct ProgramDefinition {
     pub span: Span,
     pub program_name: Identifier,
-    pub program_bindings: Option<Vec<ProgramBindingDefinition>>,
     pub program_stages: Vec<ProgramStageDefinition>,
 }
 
 impl_spanned!(ProgramDefinition);
-
-#[derive(Debug, Eq, PartialEq)]
-pub struct ProgramBindingDefinition {
-    pub span: Span,
-    pub program_binding_point: Identifier,
-    pub bound_function_name: Identifier,
-}
-
-impl_spanned!(ProgramBindingDefinition);
-
-#[derive(Debug, Eq, PartialEq)]
-pub struct ProgramBindableDeclaration { 
-    pub span: Span,
-    pub bindable_name: Identifier,
-    pub bindable_type_name: TypeIdentifier,
-    pub declaring_type: Option<TypeReference>,
-}
-
-impl_spanned!(ProgramBindableDeclaration);
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct StructDefinition {
