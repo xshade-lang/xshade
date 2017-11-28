@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use ::ast::*;
 use ::module::Module;
 use ::type_system::call_signature::CallSignature;
@@ -18,7 +19,8 @@ pub fn type_check(symbol_table: &mut SymbolTable, module: &mut Module) -> TypeCh
     try!(check_programs(symbol_table, &mut module.find_programs_mut()));
     symbol_table.leave_scope();
     
-    println!("Done Types!");
+    println!("Done Checking Types!");
+    println!("Current symbol_table: {:#?}", symbol_table);
 
     Ok(())
 }
@@ -52,7 +54,6 @@ fn check_structs(symbol_table: &mut SymbolTable, structs: &mut Vec<&mut StructDe
         try!(t.set_members(StructureMembers::new(member_list)));
     }
 
-    println!("Current symbol_table: {:#?}", symbol_table);
     
     Ok(())
 }
@@ -127,38 +128,55 @@ fn check_functions(symbol_table: &mut SymbolTable, functions: &mut Vec<&mut Func
 }
 
 fn check_programs(symbol_table: &mut SymbolTable, programs: &mut Vec<&mut ProgramDefinition>) -> TypeCheckResult<()> {
-    //println!("Checking programs {:#?}", programs);
-
     for p in programs.iter_mut() {
-        //println!("Checking program {:#?}", p);
-        for s in p.program_stages.iter_mut() {
-            //println!("Checking stage {:#?}", s);
-            let stage_type = try!(symbol_table.create_type(&s.stage_name.name));
-            try!(symbol_table.add_symbol_with_type(&s.stage_name.name, stage_type));
+        let mut stageTrace = HashMap::new();
+        
+        {
+            for s in p.program_stages.iter_mut() {
+                let stage_type = try!(symbol_table.create_type(&s.stage_name.name));
+                try!(symbol_table.add_symbol_with_type(&s.stage_name.name, stage_type));
 
-            let mut arguments = Vec::new();
-            symbol_table.enter_scope();
-            for argument in s.arguments.iter_mut() {
+                let mut arguments = Vec::new();
+                symbol_table.enter_scope();
+                for argument in s.arguments.iter_mut() {
 
-                let type_ref = match symbol_table.find_type_ref(&argument.argument_type_name.name) {
-                    Some(t) => t,
-                    None => return Err(TypeError::new(argument.argument_type_name.get_span(), ErrorKind::TypeNotFound(argument.argument_type_name.name.to_owned()))),
-                };
+                    let type_ref = match symbol_table.find_type_ref(&argument.argument_type_name.name) {
+                        Some(t) => t,
+                        None => return Err(TypeError::new(argument.argument_type_name.get_span(), ErrorKind::TypeNotFound(argument.argument_type_name.name.to_owned()))),
+                    };
+                    
+                    argument.argument_type = Some(type_ref);
+                    try!(symbol_table.add_symbol_with_type(&argument.argument_name.name, type_ref));
+                    arguments.push(type_ref);
+                }
+
+                let type_ref = try!(symbol_table.find_type_ref_or_err(&s.return_type_name.name));
+                s.return_type = Some(type_ref.clone());
+                s.declaring_type = Some(stage_type);
+
+                let signature = CallSignature::new(arguments, Some(type_ref));
+                try!(try!(symbol_table.find_type_mut_or_err(stage_type)).make_callable(signature));
+
+                try!(check_block(symbol_table, &mut s.block));
+                symbol_table.leave_scope();
                 
-                argument.argument_type = Some(type_ref);
-                try!(symbol_table.add_symbol_with_type(&argument.argument_name.name, type_ref));
-                arguments.push(type_ref);
+                *stageTrace.entry(&*s.stage_name.name).or_insert(0) += 1;
             }
+        }
 
-            let type_ref = try!(symbol_table.find_type_ref_or_err(&s.return_type_name.name));
-            s.return_type = Some(type_ref.clone());
-            s.declaring_type = Some(stage_type);
+        // 
+        // Perform program analysis and verification:
+        // 1. Is at least a vertex and fragment stage available
+        // 2. Are there duplicate stages?
+        // 3. Is the input signature to vertex stage valid?
+        // 4. Are the signatures between vertex and fragment stage compatible?
+        // 
+        if !stageTrace.contains_key("vertex") {
+            return Err(TypeError::new((&p).get_span(), ErrorKind::TypeNotFound("vertex".to_owned())))
+        }
 
-            let signature = CallSignature::new(arguments, Some(type_ref));
-            try!(try!(symbol_table.find_type_mut_or_err(stage_type)).make_callable(signature));
-
-            try!(check_block(symbol_table, &mut s.block));
-            symbol_table.leave_scope();
+        if !stageTrace.contains_key("fragment") {
+            return Err(TypeError::new((&p).get_span(), ErrorKind::TypeNotFound("fragment".to_owned())))
         }
     }
     Ok(())

@@ -93,7 +93,7 @@ named!(parse_program<NomSpan, ItemKind>,
 named!(parse_stage<NomSpan, ProgramStageDefinition>,    
     do_parse!(
         from: ws!(tag!("stage")) >>
-        stage_name: parse_symbol_declaration >>
+        stage_name: ws!(alt!(tag!("vertex") | tag!("fragment"))) >> 
         ws!(tag!("(")) >>
         arguments: ws!(separated_list!(tag!(","), parse_function_argument)) >>
         ws!(tag!(")")) >>
@@ -104,7 +104,7 @@ named!(parse_stage<NomSpan, ProgramStageDefinition>,
         to: ws!(tag!("}")) >>        
          (ProgramStageDefinition{
             span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
-            stage_name: stage_name,
+            stage_name: Identifier::from_nom_span(stage_name),
             arguments: arguments,
             block: block,
             return_type_name: return_type_name,
