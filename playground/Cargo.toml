@@ -1,8 +1,0 @@
-[package]
-name = "playground"
-version = "0.1.0"
-authors = ["Marc-Anton Boehm-von Thenen <boehm.marc.anton@gmail.com>"]
-
-[dependencies]
-xshade = { path = "../" }
-getopts = "0.2"
