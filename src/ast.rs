@@ -67,7 +67,7 @@ impl Span {
 
 impl fmt::Debug for Span {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Line {} Column {} Lenght {}", self.line, self.column, self.length)
+        write!(f, "Offset {} Line {} Column {} Lenght {}", self.offset, self.line, self.column, self.length)
     }
 }
 
@@ -118,19 +118,20 @@ impl_spanned!(ConstantDefinition);
 pub struct ProgramDefinition {
     pub span: Span,
     pub program_name: Identifier,
-    pub program_bindings: Vec<ProgramBindingDefinition>,
+    pub program_stages: Vec<ProgramStageDefinition>,
 }
 
 impl_spanned!(ProgramDefinition);
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct ProgramBindingDefinition {
+pub struct ProgramStageDefinition {
     pub span: Span,
-    pub program_binding_point: Identifier,
-    pub bound_function_name: Identifier,
+    pub stage_name: Identifier,
+    pub function: FunctionDeclaration,
+    pub declaring_type: Option<TypeReference>,
 }
 
-impl_spanned!(ProgramBindingDefinition);
+impl_spanned!(ProgramStageDefinition);
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct StructDefinition {

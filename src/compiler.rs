@@ -38,6 +38,7 @@ impl Compiler {
         };
 
         let ast = parse_str(&source)?;
+        println!("{:#?}", ast);
 
         let mut symbols = SymbolTable::new(TypeEnvironment::new());
         parse_core_modules(&mut symbols).unwrap();
