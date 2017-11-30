@@ -182,7 +182,6 @@ fn check_programs(symbol_table: &mut SymbolTable, programs: &mut Vec<&mut Progra
         let vertex_stage   = p.program_stages.iter().find(|&s| s.function_name.name == "vertex").unwrap();
         let fragment_stage = p.program_stages.iter().find(|&s| s.function_name.name == "fragment").unwrap();
 
-        let vertex_stage_arguments:   & Vec<FunctionArgumentDeclaration> = &vertex_stage.arguments;
         let fragment_stage_arguments: & Vec<FunctionArgumentDeclaration> = &fragment_stage.arguments;
 
         if !fragment_stage_arguments.len() == 1 {
