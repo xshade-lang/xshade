@@ -118,10 +118,20 @@ impl_spanned!(ConstantDefinition);
 pub struct ProgramDefinition {
     pub span: Span,
     pub program_name: Identifier,
-    pub program_stages: Vec<FunctionDeclaration>,
+    pub program_stages: Vec<ProgramStageDefinition>,
 }
 
 impl_spanned!(ProgramDefinition);
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct ProgramStageDefinition {
+    pub span: Span,
+    pub stage_name: Identifier,
+    pub function: FunctionDeclaration,
+    pub declaring_type: Option<TypeReference>,
+}
+
+impl_spanned!(ProgramStageDefinition);
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct StructDefinition {

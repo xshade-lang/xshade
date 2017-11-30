@@ -126,17 +126,28 @@ fn check_stages(symbol_table: &mut SymbolTable, program: &mut ProgramDefinition,
     let program_name: String = program.program_name.name.to_owned(); 
     for s in program.program_stages.iter_mut() {        
         let stage_type_ref = 
-        match symbol_table.find_type_ref(&s.function_name.name) {
-            Some(_) => return Err(TypeError::new(s.get_span(), ErrorKind::ProgramTypeTooManyStageInstances(program_name.clone(), (s.function_name.name).to_owned()))),
+        match symbol_table.find_type_ref(&s.stage_name.name) {
+            Some(_) => return Err(TypeError::new(s.get_span(), ErrorKind::ProgramTypeTooManyStageInstances(program_name.clone(), (s.function.function_name.name).to_owned()))),
+            None => (),
+        };
+        
+        let stage_type = try!(symbol_table.create_type(&s.function.function_name.name));
+        try!(symbol_table.add_symbol_with_type(&s.function.function_name.name, stage_type));
+
+        symbol_table.enter_scope(); // Stage scope
+
+        let function_type_ref = 
+        match symbol_table.find_type_ref(&s.function.function_name.name) {
+            Some(_) => return Err(TypeError::new(s.get_span(), ErrorKind::ProgramTypeTooManyStageInstances(program_name.clone(), (s.function.function_name.name).to_owned()))),
             None => (),
         };
 
-        let stage_type = try!(symbol_table.create_type(&s.function_name.name));
-        try!(symbol_table.add_symbol_with_type(&s.function_name.name, stage_type));
+        let function_type = try!(symbol_table.create_type(&s.function.function_name.name));
+        try!(symbol_table.add_symbol_with_type(&s.function.function_name.name, function_type));
 
+        symbol_table.leave_scope(); // Function scope
         let mut arguments = Vec::new();
-        symbol_table.enter_scope();
-        for argument in s.arguments.iter_mut() {
+        for argument in s.function.arguments.iter_mut() {
 
             let type_ref = match symbol_table.find_type_ref(&argument.argument_type_name.name) {
                 Some(t) => t,
@@ -148,17 +159,21 @@ fn check_stages(symbol_table: &mut SymbolTable, program: &mut ProgramDefinition,
             arguments.push(type_ref);
         }
 
-        let type_ref = try!(symbol_table.find_type_ref_or_err(&s.return_type_name.name));
-        s.return_type = Some(type_ref.clone());
-        s.declaring_type = Some(stage_type);
+        let type_ref = try!(symbol_table.find_type_ref_or_err(&s.function.return_type_name.name));
+        s.function.return_type    = Some(type_ref.clone());        
+        s.function.declaring_type = Some(function_type);
 
         let signature = CallSignature::new(arguments, Some(type_ref));
         try!(try!(symbol_table.find_type_mut_or_err(stage_type)).make_callable(signature));
 
-        try!(check_block(symbol_table, &mut s.block));
-        symbol_table.leave_scope();
+        try!(check_block(symbol_table, &mut s.function.block));
+
         
-        *stage_trace.entry(s.function_name.name.clone()).or_insert(0) += 1;
+        s.declaring_type = Some(stage_type);
+
+        symbol_table.leave_scope(); // Function scope
+        symbol_table.leave_scope(); // Stage scope
+        *stage_trace.entry(s.stage_name.name.clone()).or_insert(0) += 1;
     }
     Ok(())
 }
@@ -179,16 +194,16 @@ fn check_programs(symbol_table: &mut SymbolTable, programs: &mut Vec<&mut Progra
             return Err(TypeError::new(p.get_span(), ErrorKind::TypeNotFound("fragment".to_owned())))
         }
 
-        let vertex_stage   = p.program_stages.iter().find(|&s| s.function_name.name == "vertex").unwrap();
-        let fragment_stage = p.program_stages.iter().find(|&s| s.function_name.name == "fragment").unwrap();
+        let vertex_stage   = p.program_stages.iter().find(|&s| s.function.function_name.name == "vertex").unwrap();
+        let fragment_stage = p.program_stages.iter().find(|&s| s.function.function_name.name == "fragment").unwrap();
 
-        let fragment_stage_arguments: & Vec<FunctionArgumentDeclaration> = &fragment_stage.arguments;
+        let fragment_stage_arguments: & Vec<FunctionArgumentDeclaration> = &fragment_stage.function.arguments;
 
         if !fragment_stage_arguments.len() == 1 {
             return Err(TypeError::new(p.get_span(), ErrorKind::ProgramStageTooManyArguments(p.program_name.name.to_owned(), "fragment".to_owned())))
         }        
 
-        let vertex_output_type:     String = vertex_stage.return_type_name.name.to_owned();
+        let vertex_output_type:     String = vertex_stage.function.return_type_name.name.to_owned();
         let fragment_argument_type: String = fragment_stage_arguments[0].argument_type_name.name.to_owned();
 
         if vertex_output_type != fragment_argument_type { 
