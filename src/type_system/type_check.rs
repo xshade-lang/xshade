@@ -125,14 +125,15 @@ fn check_functions(symbol_table: &mut SymbolTable, functions: &mut Vec<&mut Func
 fn check_stages(symbol_table: &mut SymbolTable, program: &mut ProgramDefinition, stage_trace: &mut HashMap<String, i32>) -> TypeCheckResult<()> {
     let program_name: String = program.program_name.name.to_owned(); 
     for s in program.program_stages.iter_mut() {        
+        let stage_name = s.stage_name.name.to_owned() + "_stage";
         let stage_type_ref = 
-        match symbol_table.find_type_ref(&s.stage_name.name) {
-            Some(_) => return Err(TypeError::new(s.get_span(), ErrorKind::ProgramTypeTooManyStageInstances(program_name.clone(), (s.function.function_name.name).to_owned()))),
+        match symbol_table.find_type_ref(&stage_name) {
+            Some(_) => return Err(TypeError::new(s.get_span(), ErrorKind::ProgramTypeTooManyStageInstances(program_name.clone(), (stage_name).to_owned()))),
             None => (),
         };
         
-        let stage_type = try!(symbol_table.create_type(&s.function.function_name.name));
-        try!(symbol_table.add_symbol_with_type(&s.function.function_name.name, stage_type));
+        let stage_type = try!(symbol_table.create_type(&*stage_name));
+        try!(symbol_table.add_symbol_with_type(&*stage_name, stage_type));
 
         symbol_table.enter_scope(); // Stage scope
 
@@ -145,7 +146,7 @@ fn check_stages(symbol_table: &mut SymbolTable, program: &mut ProgramDefinition,
         let function_type = try!(symbol_table.create_type(&s.function.function_name.name));
         try!(symbol_table.add_symbol_with_type(&s.function.function_name.name, function_type));
 
-        symbol_table.leave_scope(); // Function scope
+        symbol_table.enter_scope(); // Function scope
         let mut arguments = Vec::new();
         for argument in s.function.arguments.iter_mut() {
 
