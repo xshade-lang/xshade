@@ -75,10 +75,10 @@ named!(parse_program<NomSpan, ItemKind>,
     )
 );
 
-named!(parse_stage<NomSpan, ProgramStageDefinition>,    
+named!(parse_stage<NomSpan, FunctionDeclaration>,    
     do_parse!(
         from: ws!(tag!("stage")) >>
-        stage_name: ws!(alt!(tag!("vertex") | tag!("fragment"))) >> 
+        function_name: ws!(alt!(tag!("vertex") | tag!("fragment"))) >> 
         ws!(tag!("(")) >>
         arguments: ws!(separated_list!(tag!(","), parse_function_argument)) >>
         ws!(tag!(")")) >>
@@ -87,9 +87,9 @@ named!(parse_stage<NomSpan, ProgramStageDefinition>,
         ws!(tag!("{")) >>
         block: parse_block_declaration >>
         to: ws!(tag!("}")) >>        
-         (ProgramStageDefinition{
+         (FunctionDeclaration{
             span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
-            stage_name: Identifier::from_nom_span(stage_name),
+            function_name: Identifier::from_nom_span(function_name),
             arguments: arguments,
             block: block,
             return_type_name: return_type_name,
@@ -562,30 +562,178 @@ mod tests {
 
     #[test]
     fn test_parse_program() {
-        let code = "program Phong { vertex: vertexShader, fragment: fragmentShader, }";
+        let code = "struct VertexInput {
+    position: vec4,
+    color: vec4,
+}
 
-        // assert_eq!(parse_str(code), Ok(
-        //     vec![
-        //         ItemKind::Program(
-        //             ProgramDefinition {
-        //                 span: Span::new(0, 65, 1, 1),
-        //                 program_name: Identifier::new("Phong", Span::new(8, 5, 1, 9)),
-        //                 program_bindings: vec![
-        //                     ProgramBindingDefinition {
-        //                         span: Span::new(16, 20, 1, 17),
-        //                         program_binding_point: Identifier::new("vertex", Span::new(16, 6, 1, 17)),
-        //                         bound_function_name: Identifier::new("vertexShader", Span::new(24, 12, 1, 25)),
-        //                     },
-        //                     ProgramBindingDefinition {
-        //                         span: Span::new(38, 24, 1, 39),
-        //                         program_binding_point: Identifier::new("fragment", Span::new(38, 8, 1, 39)),
-        //                         bound_function_name: Identifier::new("fragmentShader", Span::new(48, 14, 1, 49)),
-        //                     },
-        //                 ],
-        //             }
-        //         )
-        //     ]
-        // ));
+struct VertexOutput {
+    position: vec4,
+    color: vec4,
+}
+
+program VertexColored {
+    stage vertex(in: VertexInput) -> VertexOutput {
+        return VertexOutput {
+            position: in.position,
+            color:    in.color,
+        };
+    }
+
+    stage fragment(in: VertexOutput) -> vec4 {
+        return in.color;
+    }
+}";
+
+        assert_eq!(parse_str(code), Ok(
+            vec![
+                ItemKind::Struct(
+                    StructDefinition {                     
+                        span: Span::new(0, 59, 1, 1),
+                        struct_name: Identifier::new("VertexInput", Span::new(7, 11, 1, 8)),
+                        struct_member: vec![
+                            StructMemberDefinition {
+                                span: Span::new(25, 14, 2, 5),
+                                struct_member_name: Identifier::new("position", Span::new(25, 8, 2, 5)),                   
+                                struct_member_type_name: Identifier::new("vec4", Span::new(35, 4, 2, 15)),
+                                struct_member_type: None,
+                            },
+                            StructMemberDefinition {
+                                span: Span::new(45, 11, 3, 5),
+                                struct_member_name: Identifier::new("color", Span::new(45, 5, 3, 5)),
+                                struct_member_type_name: Identifier::new("vec4", Span::new(52, 4, 3, 12)),
+                                struct_member_type: None,
+                            }
+                        ],
+                        declaring_type: None,
+                    }
+                ),
+                ItemKind::Struct(
+                    StructDefinition {
+                        span: Span::new(61, 60, 6, 1),
+                        struct_name: Identifier::new("VertexOutput", Span::new(68, 12, 6, 8)),
+                        struct_member: vec![
+                            StructMemberDefinition {
+                                span: Span::new(87, 14, 7, 5),
+                                struct_member_name: Identifier::new("position", Span::new(87, 8, 7, 5)),
+                                struct_member_type_name: Identifier::new("vec4", Span::new(97, 4, 7, 15)),
+                                struct_member_type: None,
+                            },
+                            StructMemberDefinition {
+                                span: Span::new(107, 11, 8, 5),
+                                struct_member_name: Identifier::new("color", Span::new(107, 5, 8, 5)),
+                                struct_member_type_name: Identifier::new("vec4", Span::new(114, 4, 8, 12)),
+                                struct_member_type: None,
+                            }
+                        ],
+                        declaring_type: None,
+                    }                    
+                ),
+                ItemKind::Program(
+                    ProgramDefinition {
+                        span: Span::new(123, 270, 11, 1),
+                        program_name: Identifier::new("VertexColored", Span::new(131, 13, 11, 9)),
+                        program_stages: vec![
+                            FunctionDeclaration {
+                                span: Span::new(151, 161, 12, 5),
+                                function_name: Identifier::new("vertex", Span::new(157, 6, 12, 11)),
+                                arguments: vec![
+                                    FunctionArgumentDeclaration {
+                                        span: Span::new(164, 15, 12, 18), 
+                                        argument_name: Identifier::new("in", Span::new(164, 2, 12, 18)),
+                                        argument_type_name: Identifier::new("VertexInput", Span::new(168, 11, 12, 22)),
+                                        argument_type: None,
+                                    }
+                                ],
+                                block: BlockDeclaration {
+                                    span: Span::new(0, 0, 1, 1),
+                                    statements: vec![
+                                        BlockStatement::Return(
+                                            ReturnDeclaration {
+                                                span: Span::new(207, 99, 13, 9),
+                                                expression: ExpressionStatement::StructInstantiation(
+                                                    StructInstantiationExpression {
+                                                        span: Span::new(214, 91, 13, 16),
+                                                        struct_type_name: Identifier::new("VertexOutput", Span::new(214, 12, 13, 16)),
+                                                        struct_field_initializer: vec![
+                                                            StructFieldInitializerExpression {
+                                                                span: Span::new(241, 21, 14, 13),
+                                                                struct_field_name: Identifier::new("position", Span::new(241, 8, 14, 13)),
+                                                                initializer: Box::new(ExpressionStatement::FieldAccessor(
+                                                                    FieldAccessorExpression {
+                                                                        span: Span::new(251, 11, 14, 23),
+                                                                        variable_name: Identifier::new("in", Span::new(251, 2, 14, 23)),
+                                                                        field_name: Identifier::new("position", Span::new(254, 8, 14, 26)),
+                                                                        field_type: None
+                                                                    }
+                                                                )),
+                                                                struct_field_type: None
+                                                            },
+                                                            StructFieldInitializerExpression {
+                                                                span: Span::new(276, 18, 15, 13),
+                                                                struct_field_name: Identifier::new("color", Span::new(276, 5, 15, 13)),
+                                                                initializer: Box::new(ExpressionStatement::FieldAccessor(
+                                                                    FieldAccessorExpression {
+                                                                        span: Span::new(286, 8, 15, 23),
+                                                                        variable_name: Identifier::new("in", Span::new(286, 2, 15, 23)),
+                                                                        field_name: Identifier::new("color", Span::new(289, 5, 15, 26)),
+                                                                        field_type: None
+                                                                    }
+                                                                )),
+                                                                struct_field_type: None
+                                                            }
+                                                        ],
+                                                        struct_type: None
+                                                    }
+                                                ),
+                                                return_type: None
+                                            }
+                                        )
+                                    ]
+                                },
+                                return_type_name: Identifier::new("VertexOutput", Span::new(184, 12, 12, 38)),
+                                return_type: None,
+                                declaring_type: None
+                            },
+                            FunctionDeclaration {
+                                span: Span::new(318, 73, 19, 5),
+                                function_name: Identifier::new("fragment", Span::new(324, 8, 19, 11)),
+                                arguments: vec![
+                                    FunctionArgumentDeclaration {
+                                        span: Span::new(333, 16, 19, 20),
+                                        argument_name: Identifier::new("in", Span::new(333, 2, 19, 20)),
+                                        argument_type_name: Identifier::new("VertexOutput", Span::new(337, 12, 19, 24)),
+                                        argument_type: None,
+                                    }
+                                ],
+                                block: BlockDeclaration {
+                                    span: Span::new(0, 0, 1, 1),
+                                    statements: vec![
+                                        BlockStatement::Return(
+                                            ReturnDeclaration {
+                                                span: Span::new(369, 16, 20, 9),
+                                                expression: ExpressionStatement::FieldAccessor(
+                                                    FieldAccessorExpression {
+                                                        span: Span::new(376, 8, 20, 16),
+                                                        variable_name: Identifier::new("in", Span::new(376, 2, 20, 16)),
+                                                        field_name: Identifier::new("color", Span::new(379, 5, 20, 19)),
+                                                        field_type: None,
+                                                    }
+                                                ),
+                                                return_type: None,
+                                            }
+                                        )
+                                    ]
+                                },
+                                return_type_name: Identifier::new("vec4", Span::new(354, 4, 19, 41)),
+                                return_type: None,
+                                declaring_type: None,
+                            }
+                        ]
+                    }
+                )
+            ]
+        ));
     }
 
     #[test]

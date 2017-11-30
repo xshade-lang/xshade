@@ -123,16 +123,16 @@ fn check_functions(symbol_table: &mut SymbolTable, functions: &mut Vec<&mut Func
 }
 
 fn check_stages(symbol_table: &mut SymbolTable, program: &mut ProgramDefinition, stage_trace: &mut HashMap<String, i32>) -> TypeCheckResult<()> {
-    let program_name: String = program.program_name.name.to_owned(); // Required, due to borrowing issues...
+    let program_name: String = program.program_name.name.to_owned(); 
     for s in program.program_stages.iter_mut() {        
         let stage_type_ref = 
-        match symbol_table.find_type_ref(&s.stage_name.name) {
-            Some(_) => return Err(TypeError::new(s.get_span(), ErrorKind::ProgramTypeTooManyStageInstances(program_name.clone(), (s.stage_name.name).to_owned()))),
+        match symbol_table.find_type_ref(&s.function_name.name) {
+            Some(_) => return Err(TypeError::new(s.get_span(), ErrorKind::ProgramTypeTooManyStageInstances(program_name.clone(), (s.function_name.name).to_owned()))),
             None => (),
         };
 
-        let stage_type = try!(symbol_table.create_type(&s.stage_name.name));
-        try!(symbol_table.add_symbol_with_type(&s.stage_name.name, stage_type));
+        let stage_type = try!(symbol_table.create_type(&s.function_name.name));
+        try!(symbol_table.add_symbol_with_type(&s.function_name.name, stage_type));
 
         let mut arguments = Vec::new();
         symbol_table.enter_scope();
@@ -158,7 +158,7 @@ fn check_stages(symbol_table: &mut SymbolTable, program: &mut ProgramDefinition,
         try!(check_block(symbol_table, &mut s.block));
         symbol_table.leave_scope();
         
-        *stage_trace.entry(s.stage_name.name.clone()).or_insert(0) += 1;
+        *stage_trace.entry(s.function_name.name.clone()).or_insert(0) += 1;
     }
     Ok(())
 }
@@ -171,15 +171,6 @@ fn check_programs(symbol_table: &mut SymbolTable, programs: &mut Vec<&mut Progra
 
         try!(check_stages(symbol_table, p, &mut stage_trace));
 
-        // 
-        // Perform program analysis and verification:
-        // 1. Is at least a vertex and fragment stage available
-        // (2. Are there duplicate stages?) => Implicitly handled by check_stages(...)...
-        // 3. Is the input signature to vertex stage valid?
-        // 4. Are the signatures between vertex and fragment stage compatible?
-        // 
-
-        // Program consistency check
         if !stage_trace.contains_key("vertex") {
             return Err(TypeError::new(p.get_span(), ErrorKind::TypeNotFound("vertex".to_owned())))
         }
@@ -188,20 +179,13 @@ fn check_programs(symbol_table: &mut SymbolTable, programs: &mut Vec<&mut Progra
             return Err(TypeError::new(p.get_span(), ErrorKind::TypeNotFound("fragment".to_owned())))
         }
 
-        // Signature checks!
-        let vertex_stage   = p.program_stages.iter().find(|&s| s.stage_name.name == "vertex").unwrap();
-        let fragment_stage = p.program_stages.iter().find(|&s| s.stage_name.name == "fragment").unwrap();
+        let vertex_stage   = p.program_stages.iter().find(|&s| s.function_name.name == "vertex").unwrap();
+        let fragment_stage = p.program_stages.iter().find(|&s| s.function_name.name == "fragment").unwrap();
 
         let vertex_stage_arguments:   & Vec<FunctionArgumentDeclaration> = &vertex_stage.arguments;
         let fragment_stage_arguments: & Vec<FunctionArgumentDeclaration> = &fragment_stage.arguments;
 
-        // for vertex_stage_argument in vertex_stage_arguments.iter() {
-        //     // Any constraints? -> So far not... 
-        //     ()
-        // }
-
         if !fragment_stage_arguments.len() == 1 {
-            // Invalid argument count for fragment shader
             return Err(TypeError::new(p.get_span(), ErrorKind::ProgramStageTooManyArguments(p.program_name.name.to_owned(), "fragment".to_owned())))
         }        
 
@@ -209,7 +193,6 @@ fn check_programs(symbol_table: &mut SymbolTable, programs: &mut Vec<&mut Progra
         let fragment_argument_type: String = fragment_stage_arguments[0].argument_type_name.name.to_owned();
 
         if vertex_output_type != fragment_argument_type { 
-            // Vertex Output does not match fragment input
             return Err(TypeError::new(p.get_span(), ErrorKind::ProgramStageSignatureMismatch("vertex".to_owned(), "fragment".to_owned(), vertex_output_type, fragment_argument_type)))
         }
         

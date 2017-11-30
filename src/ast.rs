@@ -67,7 +67,7 @@ impl Span {
 
 impl fmt::Debug for Span {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Line {} Column {} Lenght {}", self.line, self.column, self.length)
+        write!(f, "Offset {} Line {} Column {} Lenght {}", self.offset, self.line, self.column, self.length)
     }
 }
 
@@ -118,7 +118,7 @@ impl_spanned!(ConstantDefinition);
 pub struct ProgramDefinition {
     pub span: Span,
     pub program_name: Identifier,
-    pub program_stages: Vec<ProgramStageDefinition>,
+    pub program_stages: Vec<FunctionDeclaration>,
 }
 
 impl_spanned!(ProgramDefinition);
@@ -165,20 +165,6 @@ pub struct FunctionDeclaration {
 }
 
 impl_spanned!(FunctionDeclaration);
-
-// Implement here, as we share the function declaration's arguments type
-#[derive(Debug, Eq, PartialEq)]
-pub struct ProgramStageDefinition { 
-    pub span: Span,
-    pub stage_name: Identifier,
-    pub arguments: Vec<FunctionArgumentDeclaration>,
-    pub block: BlockDeclaration,
-    pub return_type_name: TypeIdentifier,
-    pub return_type: Option<TypeReference>,
-    pub declaring_type: Option<TypeReference>,
-}
-
-impl_spanned!(ProgramStageDefinition);
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct StructFieldInitializerExpression {
