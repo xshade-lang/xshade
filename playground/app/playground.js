@@ -2001,7 +2001,7 @@ var ASM_CONSTS = [];
 
 STATIC_BASE = Runtime.GLOBAL_BASE;
 
-STATICTOP = STATIC_BASE + 30240;
+STATICTOP = STATIC_BASE + 30976;
 /* global initializers */  __ATINIT__.push();
 
 
@@ -2010,7 +2010,7 @@ memoryInitializer = Module["wasmJSMethod"].indexOf("asmjs") >= 0 || Module["wasm
 
 
 
-var STATIC_BUMP = 30240;
+var STATIC_BUMP = 30976;
 Module["STATIC_BASE"] = STATIC_BASE;
 Module["STATIC_BUMP"] = STATIC_BUMP;
 
@@ -5800,9 +5800,9 @@ function nullFunc_iiiiii(x) { Module["printErr"]("Invalid function pointer calle
 
 function nullFunc_viii(x) { Module["printErr"]("Invalid function pointer called with signature 'viii'. Perhaps this is an invalid value (e.g. caused by calling a virtual method on a NULL pointer)? Or calling a function with an incorrect type, which will fail? (it is worth building your source files with -Werror (warnings are errors), as warnings can indicate undefined behavior which can cause this)");  Module["printErr"]("Build with ASSERTIONS=2 for more info.");abort(x) }
 
-Module['wasmTableSize'] = 26624;
+Module['wasmTableSize'] = 29184;
 
-Module['wasmMaxTableSize'] = 26624;
+Module['wasmMaxTableSize'] = 29184;
 
 function invoke_iiii(index,a1,a2,a3) {
   try {
