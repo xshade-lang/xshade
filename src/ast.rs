@@ -98,6 +98,31 @@ impl Identifier {
 type TypeIdentifier = Identifier;
 
 #[derive(Debug, Eq, PartialEq)]
+pub enum ImportItem {
+    Named(Identifier),
+    All
+}
+
+type ExportItem = ImportItem;
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct ImportDefinition {
+    pub span: Span,
+    pub items: Vec<ImportItem>,
+    pub module_id: String,
+}
+
+impl_spanned!(ImportDefinition);
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct ExportDefinition {
+    pub span: Span,
+    pub items: Vec<ExportItem>,
+}
+
+impl_spanned!(ExportDefinition);
+
+#[derive(Debug, Eq, PartialEq)]
 pub enum ConstantVariant {
     Constant,
     Sampler,
@@ -382,6 +407,8 @@ impl_spanned!(CastDeclaration);
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ItemKind {
+    Import(ImportDefinition),
+    Export(ExportDefinition),
     Struct(StructDefinition),
     Program(ProgramDefinition),
     Constant(ConstantDefinition),
@@ -395,6 +422,8 @@ pub enum ItemKind {
 impl Spanned for ItemKind {
     fn get_span(&self) -> Span {
         match *self {
+            ItemKind::Import(ref item) => item.span,
+            ItemKind::Export(ref item) => item.span,
             ItemKind::Struct(ref item) => item.span,
             ItemKind::Program(ref item) => item.span,
             ItemKind::Constant(ref item) => item.span,

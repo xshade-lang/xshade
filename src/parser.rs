@@ -42,6 +42,93 @@ named!(parse_constant<NomSpan, ItemKind>,
     )
 );
 
+named!(parse_import_item<NomSpan, ImportItem>,
+    do_parse!(
+        item: alt!(
+            do_parse!(
+                ws!(tag!("*")) >> 
+                (ImportItem::All)
+            ) |
+            do_parse!(
+                name: parse_identifier >> 
+                (ImportItem::Named(Identifier::from_nom_span(name)))
+            )
+        ) >> 
+        (item)
+    )
+);
+
+named!(parse_module_exports<NomSpan, Vec<ImportItem>>,
+    do_parse!(
+        exports: 
+            opt!(ws!(tag!("{"))) >>
+            list: ws!(separated_list!(tag!(","), parse_import_item)) >>
+            opt!(ws!(tag!("}"))) >>
+            (list)
+    )
+);
+
+named!(parse_path<NomSpan, NomSpan>,
+    recognize!(
+        do_parse!(
+            one_of!("_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") >>
+            many0!(
+                one_of!("\\/_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+            ) >>
+            ()
+        )
+    )
+);
+
+named!(parse_path_declaration<NomSpan, String>,
+    do_parse!(
+        name: ws!(parse_path) >>
+        (Identifier::from_nom_span(name).name.to_owned())
+    )
+);
+
+named!(parse_module_id<NomSpan, String>,
+    do_parse!(
+        ws!(opt!(tag!("'"))) >>
+        module_id: parse_path_declaration >> 
+        ws!(opt!(tag!("'"))) >>
+        (
+            module_id
+        )
+    )
+);
+
+named!(parse_import<NomSpan, ItemKind>,
+    do_parse!(
+        from: ws!(tag!("import")) >>
+        imports: parse_module_exports >> 
+        ws!(tag!("from")) >>
+        module_id: parse_module_id >> 
+        to: ws!(tag!(";")) >> 
+        (ItemKind::Import(             
+            ImportDefinition{ 
+                span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
+                items: imports,
+                module_id: module_id,
+            }
+        ))
+    )
+);
+
+named!(parse_export<NomSpan, ItemKind>,
+    do_parse!(
+        from: ws!(tag!("export")) >>
+        exports: parse_module_exports >> 
+        to: ws!(tag!(";")) >> 
+        (ItemKind::Export(
+            ExportDefinition{ 
+                span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
+                items: exports,
+            }
+        ))     
+    )
+);
+
 named!(parse_sampler<NomSpan, ItemKind>,
     do_parse!(
         from: ws!(tag!("sampler")) >>
@@ -502,6 +589,8 @@ named!(parse<NomSpan, Vec<ItemKind>>,
     many0!(
         ws!(
             alt!(
+                parse_import |
+                parse_export | 
                 parse_sampler |
                 parse_constant |
                 parse_struct |
