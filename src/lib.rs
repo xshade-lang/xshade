@@ -7,6 +7,7 @@ mod data_structures;
 mod type_system;
 
 mod api;
+mod compile_pass;
 mod compiler;
 mod module;
 mod compile_error;
