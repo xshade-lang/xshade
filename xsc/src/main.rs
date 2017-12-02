@@ -67,7 +67,7 @@ pub fn main() {
 
     match compiler.compile_module(&module_path) {
         Ok(compile_pass) => {
-            for module in compile_pass.modules {
+            for module in &compile_pass.modules {
                 if let Some(error) = module.get_error() {
                     let source = module.get_source();
                     let lines: Vec<&str> = source.lines().collect();
@@ -119,7 +119,7 @@ pub fn main() {
                 } else {
                     println!("{:#?}", module);
                 }
-            }
+            }            
         },
         Err(error) => {
             println!("{:#?}", error);

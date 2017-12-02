@@ -1,6 +1,6 @@
 use ::std::error::Error;
 use ::compile_error::{ CompileError, CompileResult, ErrorKind };
-use ::compile_pass::CompilePass;
+use ::compile_pass::{ Pass, PassResult, PassError, CompilePass };
 use ::module::Module;
 use ::parser::parse_str;
 use ::type_system::symbol_table::SymbolTable;
@@ -33,39 +33,23 @@ impl Compiler {
     }
 
     pub fn compile_module(&mut self, module_path: &str) -> CompileResult<CompilePass> {
-        let source = match self.resolver.resolve(module_path) {
+        let source: String = match self.resolver.resolve(module_path) {
             Ok(source) => source,
-            Err(_) => return Err(CompileError::unknown()),
+            Err(e) => return Err(CompileError::unknown()),
         };
-
-        let ast = parse_str(&source)?;
-        println!("{:#?}", ast);
-
+        
         let mut symbols = SymbolTable::new(TypeEnvironment::new());
         parse_core_modules(&mut symbols).unwrap();
 
-        let mut modules: Vec<Module> = Vec::new();
+        let mut compile_pass = CompilePass::new(1, source, module_path.to_owned(), symbols);
 
-        let module = Module::new(module_path.to_owned(), source, ast, false);
-        modules.push(module);
+        let mut compiled_modules: Vec<Module> = Vec::new();
+        let compile_pass_result = compile_pass.execute(&mut compiled_modules);
 
-        let mut compile_pass = CompilePass::new(1, modules, symbols);
-
-        {
-            let pass_symbols = &mut compile_pass.symbol_table;
-
-            for m in &mut compile_pass.modules {
-                match type_check(pass_symbols, m) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        let span = e.get_span();
-                        m.set_error(CompileError::new(ErrorKind::TypeError(e), span));
-                    },
-                }
-            }
+        match(compile_pass_result) {
+            Ok(_) => Ok(compile_pass),
+            Err(e) => return Err(CompileError::unknown())
         }
-
-        Ok(compile_pass)
     }
     
 }
