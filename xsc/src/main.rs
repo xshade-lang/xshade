@@ -82,7 +82,7 @@ pub fn main() {
                                 
                                 single_span_error(&line, span, &path,
                                 format!("error: Type not found:"),
-                                format!("Type `{}` not found.", type_name));
+                                format!("Type `{}` not found in current or any parent scope.", type_name));
                             }
                             &TypeErrorKind::TypeHasNoMember => {
                                 let span = type_error.get_span();

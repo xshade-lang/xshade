@@ -369,6 +369,7 @@ fn check_literal_expression(symbol_table: &mut SymbolTable, literal_expression: 
 }
 
 fn check_exports(symbol_table: &mut SymbolTable, exports: &mut Vec<&mut ExportDefinition>) -> TypeCheckResult<()> {
+        
     for e in exports.iter_mut() {
         for i in &e.items { 
             let type_name = match i {
