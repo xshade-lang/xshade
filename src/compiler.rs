@@ -1,5 +1,6 @@
 use ::std::error::Error;
 use ::compile_error::{ CompileError, CompileResult, ErrorKind };
+use ::compile_pass::CompilePass;
 use ::module::Module;
 use ::parser::parse_str;
 use ::type_system::symbol_table::SymbolTable;
@@ -31,7 +32,7 @@ impl Compiler {
         }
     }
 
-    pub fn compile_module(&mut self, module_path: &str) -> CompileResult<Module> {
+    pub fn compile_module(&mut self, module_path: &str) -> CompileResult<CompilePass> {
         let source = match self.resolver.resolve(module_path) {
             Ok(source) => source,
             Err(_) => return Err(CompileError::unknown()),
@@ -43,16 +44,28 @@ impl Compiler {
         let mut symbols = SymbolTable::new(TypeEnvironment::new());
         parse_core_modules(&mut symbols).unwrap();
 
-        let mut module = Module::new(module_path.to_owned(), source, ast, false);
+        let mut modules: Vec<Module> = Vec::new();
 
-        match type_check(&mut symbols, &mut module) {
-            Ok(_) => Ok(module),
-            Err(e) => {
-                let span = e.get_span();
-                module.set_error(CompileError::new(ErrorKind::TypeError(e), span));
-                Ok(module)
-            },
+        let module = Module::new(module_path.to_owned(), source, ast, false);
+        modules.push(module);
+
+        let mut compile_pass = CompilePass::new(1, modules, symbols);
+
+        {
+            let pass_symbols = &mut compile_pass.symbol_table;
+
+            for m in &mut compile_pass.modules {
+                match type_check(pass_symbols, m) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        let span = e.get_span();
+                        m.set_error(CompileError::new(ErrorKind::TypeError(e), span));
+                    },
+                }
+            }
         }
+
+        Ok(compile_pass)
     }
     
 }
