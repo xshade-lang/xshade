@@ -22,6 +22,7 @@ pub enum ErrorKind {
     ProgramTypeTooManyStageInstances(String, String),
     ProgramStageTooManyArguments(String, String),
     ProgramStageSignatureMismatch(String /* Source Stage */, String /* Target Stage */, String /* Source Stage Output */, String /* Target Stage Input */),
+    InvalidExport(String /* Type name */),
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -107,7 +108,9 @@ impl fmt::Display for TypeError {
                  source_stage_name,
                  target_stage_input_type_name,
                  target_stage_name)
-            }
+            },
+            ErrorKind::InvalidExport(ref type_name) => write!(f, "Invalid export type named \"{}\"", type_name)
+            
         }
     }
 }
@@ -131,6 +134,7 @@ impl Error for TypeError {
             ErrorKind::ProgramTypeTooManyStageInstances(_, _) => "Too many stages of same type in program.",
             ErrorKind::ProgramStageTooManyArguments(_, _) => "Too many arguments in stage function.",
             ErrorKind::ProgramStageSignatureMismatch(_, _, _, _) => "Incompatible signatures between linked program stages.",
+            ErrorKind::InvalidExport(_) => "Invalid export type",
         }
     }
 }

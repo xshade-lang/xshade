@@ -15,6 +15,7 @@ pub fn type_check(symbol_table: &mut SymbolTable, module: &mut Module) -> TypeCh
     try!(check_constant(symbol_table, &mut module.find_constants_mut()));
     try!(check_functions(symbol_table, &mut module.find_functions_mut()));
     try!(check_programs(symbol_table, &mut module.find_programs_mut()));
+    try!(check_exports(symbol_table, &mut module.find_exports_mut()));
     symbol_table.leave_scope();
 
     Ok(())
@@ -365,6 +366,47 @@ fn check_literal_expression(symbol_table: &mut SymbolTable, literal_expression: 
     };
     literal_expression.literal_type = Some(type_ref.clone());
     Ok(type_ref.clone())
+}
+
+fn check_exports(symbol_table: &mut SymbolTable, exports: &mut Vec<&mut ExportDefinition>) -> TypeCheckResult<()> {
+        
+    for e in exports.iter_mut() {
+        for i in &e.items { 
+            let type_name = match i {
+                &ImportItem::Named(ref identifier) => &*identifier.name,
+                _ => continue,
+            };
+
+            let type_ref = match symbol_table.find_type_ref(type_name) {
+                Some(t) => t,
+                None    => return Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned())))
+            };
+
+            let type_def = match symbol_table.find_type_mut(type_ref) {
+                Some(t) => t,
+                None    => return Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned())))
+            };
+
+            let mut isStruct: bool   = false;
+            let mut isFunction: bool = false;
+
+            {
+                isStruct = match type_def.get_member() {
+                    Some(_) => true,
+                    None    => false,
+                };
+            }
+            
+            {
+                isFunction = type_def.is_callable();
+            }
+
+            if !(isFunction || isStruct) { 
+                try!(Err(TypeError::new(Span::empty(), ErrorKind::InvalidExport(type_name.to_owned()))));
+            }
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]
