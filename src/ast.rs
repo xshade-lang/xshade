@@ -250,6 +250,7 @@ pub struct IndexAccesorExpression {
 
 impl_spanned!(IndexAccesorExpression);
 
+// TODO rename to Expression, make new struct ExpressionStatement like other BlockStatements
 #[derive(Debug, Eq, PartialEq)]
 pub enum ExpressionStatement {
     Infix(InfixExpression),
@@ -275,6 +276,7 @@ impl Spanned for ExpressionStatement {
     }
 }
 
+// TODO rename to LocalStatement
 #[derive(Debug, Eq, PartialEq)]
 pub struct LocalDeclaration {
     pub span: Span,
@@ -285,6 +287,7 @@ pub struct LocalDeclaration {
 
 impl_spanned!(LocalDeclaration);
 
+// TODO rename to ReturnStatement
 #[derive(Debug, Eq, PartialEq)]
 pub struct ReturnDeclaration {
     pub span: Span,

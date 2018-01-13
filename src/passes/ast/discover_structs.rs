@@ -16,13 +16,12 @@ impl DiscoverStructsPass {
 }
 
 impl AstWalker for DiscoverStructsPass {
-    fn on_struct(&mut self, struct_definition: &mut StructDefinition) {
-        //let type_ref = try!(self.symbol_table.create_type(&struct_definition.struct_name.name));
-        //try!(self.symbol_table.add_symbol_with_type(&struct_definition.struct_name.name, type_ref));
-        //struct_definition.declaring_type = Some(type_ref);
+
+    fn visit_struct(&mut self, struct_definition: &mut StructDefinition) -> PassResult {
+        let type_ref = try!(self.symbol_table.create_type(&struct_definition.struct_name.name));
+        try!(self.symbol_table.add_symbol_with_type(&struct_definition.struct_name.name, type_ref));
+        struct_definition.declaring_type = Some(type_ref);
+        Ok(())
     }
 
-    fn on_struct_member(&mut self, struct_member_definition: &mut StructMemberDefinition) {
-
-    }
 }

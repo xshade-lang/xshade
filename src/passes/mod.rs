@@ -1,6 +1,7 @@
 pub mod ast;
 pub mod mir;
 
+#[derive(Debug)]
 pub enum PassError {
     Warnings,
     Errors,
@@ -9,8 +10,15 @@ pub enum PassError {
 
 pub type PassResult = Result<(), PassError>;
 
+// TODO
+impl ::std::convert::From<::type_system::error::TypeError> for PassError {
+    fn from(other: ::type_system::error::TypeError) -> Self {
+        PassError::Fatal
+    }
+}
+
 pub trait Pass<T> {
-    fn execute(&mut self, items: &mut T);
+    fn execute(&mut self, items: &mut T) -> PassResult;
 }
 
 pub struct PassSystem<T> {
@@ -30,7 +38,14 @@ impl<T> PassSystem<T> {
 
     pub fn execute(&mut self, items: &mut T) {
         for pass in self.passes.iter_mut() {
-            pass.execute(items);
+            match pass.execute(items) {
+                Ok(()) => (),
+                Err(e) => match e {
+                    PassError::Warnings => (),
+                    PassError::Errors => (),
+                    PassError::Fatal => (),
+                }
+            }
         }
     }
 }
@@ -52,15 +67,16 @@ mod tests {
     }
 
     impl<usize> Pass<usize> for ExamplePass {
-        fn execute(&mut self, items: &mut usize) {
+        fn execute(&mut self, items: &mut usize) -> PassResult {
             self.executed = true;
+            Ok(())
         }
     }
 
     #[test]
     pub fn it_executes_all_passes() {
-        let mut pass_one = ExamplePass::new();
-        let mut pass_two = ExamplePass::new();
+        let pass_one = ExamplePass::new();
+        let pass_two = ExamplePass::new();
 
         let mut pass_system = PassSystem::new();
 
