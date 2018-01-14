@@ -2,6 +2,7 @@ use ::ast::*;
 use ::passes::*;
 
 pub mod discover_structs;
+pub mod generate_spirv;
 
 impl<T: AstWalker> Pass<Vec<ItemKind>> for T {
     fn execute(&mut self, items: &mut Vec<ItemKind>) -> PassResult {

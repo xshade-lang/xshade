@@ -3,6 +3,9 @@ extern crate nom;
 #[macro_use]
 extern crate nom_locate;
 
+extern crate rspirv;
+extern crate spirv_headers as spirv;
+
 mod data_structures;
 mod type_system;
 mod passes;

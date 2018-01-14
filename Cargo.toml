@@ -6,3 +6,5 @@ authors = ["Andreas Fischer <home@deviru.de>", "Marc-Anton Boehm-von Thenen <boe
 [dependencies]
 nom = "^3.2"
 nom_locate = "^0.1"
+rspirv = "0.5.1"
+spirv_headers = "1.2"
