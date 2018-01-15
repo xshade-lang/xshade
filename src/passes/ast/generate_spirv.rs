@@ -132,10 +132,22 @@ impl AstWalker for GenerateSpirvPass {
         };
     }
 
+    fn visit_literal_expression(&mut self, literal_expression: &mut LiteralExpression) {
+        let constant_type = self.get_spirv_type(literal_expression.literal_type);
+        // TODO convert string-value to float constant
+        let constant = self.builder.constant_f32(constant_type, 0.0);
+        self.last_expression = Some(constant);
+    }
+
     fn visit_return_statement(&mut self, return_statement: &mut ReturnDeclaration) {
         self.walk_return_statement(return_statement);
         let ret_value = self.last_expression.take().unwrap();
         self.builder.ret_value(ret_value).unwrap();
+    }
+
+    fn visit_local_statement(&mut self, local_statement: &mut LocalDeclaration) {
+        self.walk_local_statement(local_statement);
+        self.spirv_symbol_table.add_symbol(&local_statement.symbol_name.name, self.last_expression.take().unwrap());
     }
 }
 
@@ -178,5 +190,35 @@ mod tests {
             %11 = OpFMul  %2  %5 %10\n\
             OpReturnValue %11\n\
             OpFunctionEnd");
-    }    
+    }
+
+    #[test]
+    pub fn it_works_two() {
+        let mut compilation = compile("fn main(a: f32, b: f32) -> f32 { let c = a + b; return c; }");
+        let mut pass = GenerateSpirvPass::new(compilation.get_symbol_table());
+
+        compilation.run_ast_pass(&mut pass);
+        
+        let mut code = pass.assemble();
+        let mut loader = mr::Loader::new();
+        rspirv::binary::parse_words(&code, &mut loader).unwrap();
+        let module = loader.module();
+
+        assert_eq!(module.disassemble(),
+           "; SPIR-V\n\
+            ; Version: 1.2\n\
+            ; Generator: rspirv\n\
+            ; Bound: 9\n\
+            OpMemoryModel Logical GLSL450\n\
+            %1 = OpTypeVoid\n\
+            %2 = OpTypeFloat 32\n\
+            %3 = OpTypeFunction %2 %2 %2\n\
+            %4 = OpFunction  %2  DontInline|Const %3\n\
+            %5 = OpFunctionParameter  %2 \n\
+            %6 = OpFunctionParameter  %2 \n\
+            %7 = OpLabel\n\
+            %8 = OpFAdd  %2  %5 %6\n\
+            OpReturnValue %8\n\
+            OpFunctionEnd");
+    }
 }

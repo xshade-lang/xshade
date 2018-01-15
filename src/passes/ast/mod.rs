@@ -39,7 +39,7 @@ pub trait AstWalker {
     }
 
     fn walk_local_statement(&mut self, local_statement: &mut LocalDeclaration) {
-        self.visit_expression_statement(&mut local_statement.expression);
+        self.visit_expression(&mut local_statement.expression);
     }
 
     fn visit_return_statement(&mut self, return_statement: &mut ReturnDeclaration) {
@@ -47,7 +47,7 @@ pub trait AstWalker {
     }
 
     fn walk_return_statement(&mut self, return_statement: &mut ReturnDeclaration) {
-        self.visit_expression_statement(&mut return_statement.expression);
+        self.visit_expression(&mut return_statement.expression);
     }
 
     fn visit_expression_statement(&mut self, expression_statement: &mut ExpressionStatement) {
