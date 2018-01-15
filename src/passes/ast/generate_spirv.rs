@@ -8,12 +8,14 @@ use ::passes::ast::*;
 use ::type_system::symbol_table::SymbolTable;
 use ::type_system::type_environment::TypeReference;
 use ::passes::ast::spirv_symbol_table::SpirvSymbolTable;
+use ::passes::ast::spirv_type_cache::SpirvTypeCache;
 
 /// AST pass to generate spir-v bytecode
 pub struct GenerateSpirvPass {
     builder: mr::Builder,
     symbol_table: SymbolTable,
     spirv_symbol_table: SpirvSymbolTable,
+    spirv_type_cache: SpirvTypeCache,
 
     last_expression: Option<Word>,
 }
@@ -23,11 +25,13 @@ impl GenerateSpirvPass {
         let mut builder = mr::Builder::new();
 
         builder.memory_model(spirv::AddressingModel::Logical, spirv::MemoryModel::GLSL450);
+        let void = builder.type_void();
 
         GenerateSpirvPass {
             builder: builder,
             symbol_table: symbol_table,
             spirv_symbol_table: SpirvSymbolTable::new(),
+            spirv_type_cache: SpirvTypeCache::new(void),
             last_expression: None,
         }
     }
@@ -39,20 +43,37 @@ impl GenerateSpirvPass {
     }
 
     fn get_spirv_type(&mut self, type_ref: Option<TypeReference>) -> spirv::Word {
-        match type_ref {
-            Some(t) => match self.symbol_table.find_type(t) {
-                Some(type_definition) => match type_definition.get_name() {
-                    "bool" => self.builder.type_bool(),
-                    "f32" => self.builder.type_float(32),
-                    "f64" => self.builder.type_float(64),
-                    "i32" => self.builder.type_int(32, 0),
-                    "i64" => self.builder.type_int(64, 0),
-                    _ => self.builder.type_void(),
-                }
-                None => self.builder.type_void(),
+        let type_void = self.spirv_type_cache.get_void();
+
+        let t = match type_ref {
+            Some(t) => t,
+            None => {
+                return type_void;
             }
-            None => self.builder.type_void(),
+        };
+
+        match self.spirv_type_cache.find(t) {
+            Some(tr) => {
+                return return tr.clone();
+            }
+            _ => (),
         }
+
+        let spirv_type = match self.symbol_table.find_type(t) {
+            Some(type_definition) => match type_definition.get_name() {
+                "bool" => self.builder.type_bool(),
+                "f32" => self.builder.type_float(32),
+                "f64" => self.builder.type_float(64),
+                "i32" => self.builder.type_int(32, 0),
+                "i64" => self.builder.type_int(64, 0),
+                _ => type_void,
+            }
+            None => type_void,
+        }.clone();
+
+        self.spirv_type_cache.insert(t, spirv_type);
+
+        spirv_type
     }
 }
 

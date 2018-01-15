@@ -2,6 +2,7 @@ use ::ast::*;
 use ::passes::*;
 
 pub mod spirv_symbol_table;
+pub mod spirv_type_cache;
 pub mod generate_spirv;
 
 /// Visitor pattern over the AST
