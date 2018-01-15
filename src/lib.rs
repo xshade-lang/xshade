@@ -18,6 +18,9 @@ mod ast;
 mod parser;
 mod string_builder;
 
+#[cfg(test)]
+mod testing;
+
 pub use ::ast::*;
 pub use api::parse_module;
 

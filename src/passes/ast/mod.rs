@@ -1,14 +1,9 @@
 use ::ast::*;
 use ::passes::*;
 
-pub mod discover_structs;
+pub mod spirv_symbol_table;
 pub mod generate_spirv;
 
-impl<T: AstWalker> Pass<Vec<ItemKind>> for T {
-    fn execute(&mut self, items: &mut Vec<ItemKind>) -> PassResult {
-        self.visit(items)
-    }
-}
 /// Visitor pattern over the AST
 /// calls override visit_* functions to process the given items
 /// some may require you to call the given walk_* function to continue
@@ -27,7 +22,7 @@ pub trait AstWalker {
     }
 
     fn visit_block(&mut self, block: &mut BlockDeclaration) -> PassResult {
-        Ok(())
+        self.walk_block(block)
     }
 
     fn walk_block(&mut self, block: &mut BlockDeclaration) -> PassResult {
@@ -86,6 +81,14 @@ pub trait AstWalker {
         self.visit_expression(&mut infix_expression.left_hand);
         self.visit_expression(&mut infix_expression.right_hand);
         Ok(())
+    }
+
+    fn walk_infix_expression_left(&mut self, infix_expression: &mut InfixExpression) -> PassResult {
+        self.visit_expression(&mut infix_expression.left_hand)
+    }
+
+    fn walk_infix_expression_right(&mut self, infix_expression: &mut InfixExpression) -> PassResult {
+        self.visit_expression(&mut infix_expression.right_hand)
     }
 
     fn visit_literal_expression(&mut self, literal_expression: &mut LiteralExpression) -> PassResult {

@@ -22,6 +22,10 @@ impl Module {
         }
     }
 
+    pub fn get_ast_mut(&mut self) -> &mut Vec<ItemKind> {
+        &mut self.ast
+    }
+
     pub fn get_path(&self) -> &str {
         &self.path
     }
