@@ -19,6 +19,10 @@ pub enum ErrorKind {
     TypeHasNoMember,
     MemberNotFound,
     CannotInstantiateStructWithArguments,
+    ProgramTypeTooManyStageInstances(String, String),
+    ProgramStageTooManyArguments(String, String),
+    ProgramStageSignatureMismatch(String /* Source Stage */, String /* Target Stage */, String /* Source Stage Output */, String /* Target Stage Input */),
+    InvalidExport(String /* Type name */),
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -86,6 +90,27 @@ impl fmt::Display for TypeError {
             ErrorKind::CannotInstantiateStructWithArguments => {
                 write!(f, "Cannot instantiate structure with given arguments.")
             },
+            ErrorKind::ProgramTypeTooManyStageInstances(ref program_type, ref stage_type) => {
+                write!(f, "Too many instances of \"{}\" in program \"{}\".", stage_type, program_type)
+            },
+            ErrorKind::ProgramStageTooManyArguments(ref program_type, ref stage_type) => {
+                write!(f, "Too many arguments in stage function \"{}\" of program \"{}\".", stage_type, program_type)
+            },
+            ErrorKind::ProgramStageSignatureMismatch(
+                ref source_stage_name, 
+                ref target_stage_name, 
+                ref source_stage_output_type_name,
+                ref target_stage_input_type_name) => 
+            {
+                write!(f,
+                 "Output type \"{}\" of stage \"{}\" is incompatible with input type \"{}\" of stage \"{}\".", 
+                 source_stage_output_type_name, 
+                 source_stage_name,
+                 target_stage_input_type_name,
+                 target_stage_name)
+            },
+            ErrorKind::InvalidExport(ref type_name) => write!(f, "Invalid export type named \"{}\"", type_name)
+            
         }
     }
 }
@@ -106,6 +131,10 @@ impl Error for TypeError {
             ErrorKind::TypeHasNoMember => "Type has no member.",
             ErrorKind::MemberNotFound => "Member not found.",
             ErrorKind::CannotInstantiateStructWithArguments => "Cannot instantiate structure with given arguments.",
+            ErrorKind::ProgramTypeTooManyStageInstances(_, _) => "Too many stages of same type in program.",
+            ErrorKind::ProgramStageTooManyArguments(_, _) => "Too many arguments in stage function.",
+            ErrorKind::ProgramStageSignatureMismatch(_, _, _, _) => "Incompatible signatures between linked program stages.",
+            ErrorKind::InvalidExport(_) => "Invalid export type",
         }
     }
 }

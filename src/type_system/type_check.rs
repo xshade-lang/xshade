@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use ::ast::*;
 use ::module::Module;
 use ::type_system::call_signature::CallSignature;
@@ -13,7 +14,10 @@ pub fn type_check(symbol_table: &mut SymbolTable, module: &mut Module) -> TypeCh
     try!(check_casts(module.is_core(), symbol_table, &mut module.find_casts_mut()));
     try!(check_constant(symbol_table, &mut module.find_constants_mut()));
     try!(check_functions(symbol_table, &mut module.find_functions_mut()));
+    try!(check_programs(symbol_table, &mut module.find_programs_mut()));
+    try!(check_exports(symbol_table, &mut module.find_exports_mut()));
     symbol_table.leave_scope();
+
     Ok(())
 }
 
@@ -45,6 +49,7 @@ fn check_structs(symbol_table: &mut SymbolTable, structs: &mut Vec<&mut StructDe
         let mut t = try!(symbol_table.find_type_mut_or_err(s.declaring_type.unwrap())); //TODO ugly unwrap
         try!(t.set_members(StructureMembers::new(member_list)));
     }
+
     
     Ok(())
 }
@@ -118,6 +123,100 @@ fn check_functions(symbol_table: &mut SymbolTable, functions: &mut Vec<&mut Func
     Ok(())
 }
 
+fn check_stages(symbol_table: &mut SymbolTable, program: &mut ProgramDefinition, stage_trace: &mut HashMap<String, i32>) -> TypeCheckResult<()> {
+    let program_name: String = program.program_name.name.to_owned(); 
+    for s in program.program_stages.iter_mut() {        
+        let stage_name = s.stage_name.name.to_owned() + "_stage";
+        let stage_type_ref = 
+        match symbol_table.find_type_ref(&stage_name) {
+            Some(_) => return Err(TypeError::new(s.get_span(), ErrorKind::ProgramTypeTooManyStageInstances(program_name.clone(), (stage_name).to_owned()))),
+            None => (),
+        };
+        
+        let stage_type = try!(symbol_table.create_type(&*stage_name));
+        try!(symbol_table.add_symbol_with_type(&*stage_name, stage_type));
+
+        symbol_table.enter_scope(); // Stage scope
+
+        let function_type_ref = 
+        match symbol_table.find_type_ref(&s.function.function_name.name) {
+            Some(_) => return Err(TypeError::new(s.get_span(), ErrorKind::ProgramTypeTooManyStageInstances(program_name.clone(), (s.function.function_name.name).to_owned()))),
+            None => (),
+        };
+
+        let function_type = try!(symbol_table.create_type(&s.function.function_name.name));
+        try!(symbol_table.add_symbol_with_type(&s.function.function_name.name, function_type));
+
+        symbol_table.enter_scope(); // Function scope
+        let mut arguments = Vec::new();
+        for argument in s.function.arguments.iter_mut() {
+
+            let type_ref = match symbol_table.find_type_ref(&argument.argument_type_name.name) {
+                Some(t) => t,
+                None => return Err(TypeError::new(argument.argument_type_name.get_span(), ErrorKind::TypeNotFound(argument.argument_type_name.name.to_owned()))),
+            };
+            
+            argument.argument_type = Some(type_ref);
+            try!(symbol_table.add_symbol_with_type(&argument.argument_name.name, type_ref));
+            arguments.push(type_ref);
+        }
+
+        let type_ref = try!(symbol_table.find_type_ref_or_err(&s.function.return_type_name.name));
+        s.function.return_type    = Some(type_ref.clone());        
+        s.function.declaring_type = Some(function_type);
+
+        let signature = CallSignature::new(arguments, Some(type_ref));
+        try!(try!(symbol_table.find_type_mut_or_err(stage_type)).make_callable(signature));
+
+        try!(check_block(symbol_table, &mut s.function.block));
+
+        
+        s.declaring_type = Some(stage_type);
+
+        symbol_table.leave_scope(); // Function scope
+        symbol_table.leave_scope(); // Stage scope
+        *stage_trace.entry(s.stage_name.name.clone()).or_insert(0) += 1;
+    }
+    Ok(())
+}
+
+fn check_programs(symbol_table: &mut SymbolTable, programs: &mut Vec<&mut ProgramDefinition>) -> TypeCheckResult<()> {
+    for p in programs.iter_mut() {
+        symbol_table.enter_scope();
+    
+        let mut stage_trace = HashMap::new();
+
+        try!(check_stages(symbol_table, p, &mut stage_trace));
+
+        if !stage_trace.contains_key("vertex") {
+            return Err(TypeError::new(p.get_span(), ErrorKind::TypeNotFound("vertex".to_owned())))
+        }
+
+        if !stage_trace.contains_key("fragment") {
+            return Err(TypeError::new(p.get_span(), ErrorKind::TypeNotFound("fragment".to_owned())))
+        }
+
+        let vertex_stage   = p.program_stages.iter().find(|&s| s.function.function_name.name == "vertex").unwrap();
+        let fragment_stage = p.program_stages.iter().find(|&s| s.function.function_name.name == "fragment").unwrap();
+
+        let fragment_stage_arguments: & Vec<FunctionArgumentDeclaration> = &fragment_stage.function.arguments;
+
+        if !fragment_stage_arguments.len() == 1 {
+            return Err(TypeError::new(p.get_span(), ErrorKind::ProgramStageTooManyArguments(p.program_name.name.to_owned(), "fragment".to_owned())))
+        }        
+
+        let vertex_output_type:     String = vertex_stage.function.return_type_name.name.to_owned();
+        let fragment_argument_type: String = fragment_stage_arguments[0].argument_type_name.name.to_owned();
+
+        if vertex_output_type != fragment_argument_type { 
+            return Err(TypeError::new(p.get_span(), ErrorKind::ProgramStageSignatureMismatch("vertex".to_owned(), "fragment".to_owned(), vertex_output_type, fragment_argument_type)))
+        }
+        
+        symbol_table.leave_scope();
+    }
+    Ok(())
+}
+
 fn check_block(symbol_table: &mut SymbolTable, block: &mut BlockDeclaration) -> TypeCheckResult<()> {
     symbol_table.enter_scope();
     for s in block.statements.iter_mut() {
@@ -166,6 +265,7 @@ fn check_field_accessor_expression(symbol_table: &mut SymbolTable, field_accesso
             if !t.has_member() {
                 return Err(TypeError::new(field_accessor_expression.get_span(), ErrorKind::TypeHasNoMember));
             }
+
             match t.find_member_type(&field_accessor_expression.field_name.name) {
                 Some(t) => t,
                 None => return Err(TypeError::new(Span::empty(), ErrorKind::MemberNotFound)),
@@ -266,6 +366,47 @@ fn check_literal_expression(symbol_table: &mut SymbolTable, literal_expression: 
     };
     literal_expression.literal_type = Some(type_ref.clone());
     Ok(type_ref.clone())
+}
+
+fn check_exports(symbol_table: &mut SymbolTable, exports: &mut Vec<&mut ExportDefinition>) -> TypeCheckResult<()> {
+        
+    for e in exports.iter_mut() {
+        for i in &e.items { 
+            let type_name = match i {
+                &ImportItem::Named(ref identifier) => &*identifier.name,
+                _ => continue,
+            };
+
+            let type_ref = match symbol_table.find_type_ref(type_name) {
+                Some(t) => t,
+                None    => return Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned())))
+            };
+
+            let type_def = match symbol_table.find_type_mut(type_ref) {
+                Some(t) => t,
+                None    => return Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned())))
+            };
+
+            let mut isStruct: bool   = false;
+            let mut isFunction: bool = false;
+
+            {
+                isStruct = match type_def.get_member() {
+                    Some(_) => true,
+                    None    => false,
+                };
+            }
+            
+            {
+                isFunction = type_def.is_callable();
+            }
+
+            if !(isFunction || isStruct) { 
+                try!(Err(TypeError::new(Span::empty(), ErrorKind::InvalidExport(type_name.to_owned()))));
+            }
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]

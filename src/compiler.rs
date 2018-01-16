@@ -70,6 +70,7 @@ impl Compiler {
         };
 
         let ast = parse_str(&source)?;
+        println!("{:#?}", ast);
 
         let mut symbol_table = SymbolTable::new(TypeEnvironment::new());
         parse_core_modules(&mut symbol_table).unwrap();
