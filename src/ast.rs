@@ -3,6 +3,9 @@ use ::std::str;
 use ::nom_locate::LocatedSpan;
 use ::type_system::type_environment::TypeReference;
 
+// TODO refactor all Vec<ItemKind> to Ast
+pub type Ast = Vec<ItemKind>;
+
 type NomSpan<'a> = LocatedSpan<&'a str>;
 
 pub trait Spanned {

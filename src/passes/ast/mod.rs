@@ -1,24 +1,32 @@
 use ::ast::*;
 use ::passes::*;
 
-pub mod spirv_symbol_table;
-pub mod spirv_type_cache;
-pub mod generate_spirv;
 pub mod type_checking;
+pub mod code_generation;
+
+impl<T: AstWalker> Pass<Ast> for T {
+    fn execute(&mut self, items: &mut Ast) {
+        self.visit(items);
+    }
+}
 
 /// Visitor pattern over the AST
 /// calls override visit_* functions to process the given items
 /// some may require you to call the given walk_* function to continue
 /// you may choose to not call walk_* if you don't need further processing
 pub trait AstWalker {
-    fn visit(&mut self, items: &mut Vec<ItemKind>) {
+    fn visit(&mut self, items: &mut Ast) {
         for item in items.iter_mut() {
             match *item {
                 ItemKind::Struct(ref mut item) => self.visit_struct(item),
                 ItemKind::Function(ref mut item) => self.visit_function(item),
+                ItemKind::Primitive(ref mut item) => self.visit_primitive(item),
                 _ => (),
             };
         }
+    }
+
+    fn visit_primitive(&mut self, primitive_declaration: &mut PrimitiveDeclaration) {
     }
 
     fn visit_block(&mut self, block: &mut BlockDeclaration) {

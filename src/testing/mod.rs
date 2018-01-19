@@ -1,4 +1,4 @@
-use ::ast::ItemKind;
+use ::ast::Ast;
 use ::std::collections::HashMap;
 use ::std::error::Error;
 use ::compile_error::CompileError;
@@ -29,4 +29,8 @@ pub fn compile(code_to_compile: &str) -> Compilation {
     let resolver = Box::new(TestResolver::new(map));
     let mut compiler = Compiler::new(resolver);
     compiler.compile_module("test").unwrap()
+}
+
+pub fn compile_ast(code_to_compile: &str) -> Ast {
+    ::parser::parse_str(code_to_compile).unwrap()
 }
