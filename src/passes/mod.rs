@@ -2,6 +2,7 @@
 pub mod macros;
 pub mod results;
 pub mod ast;
+pub mod error;
 
 pub trait Pass<T> {
     fn execute(&mut self, items: &mut T);
