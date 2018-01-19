@@ -1,8 +1,11 @@
 use ::std::collections::HashMap;
+use ::std::rc::Rc;
 use ::ast::Span;
 use ::type_system::error::{ TypeError, ErrorKind, TypeCheckResult };
 use ::type_system::type_definition::TypeDefinition;
 use ::type_system::type_environment::{ TypeEnvironment, TypeReference };
+
+pub type SymbolTableReference = Rc<SymbolTable>;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum SymbolState {

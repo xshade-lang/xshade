@@ -53,6 +53,28 @@ impl Module {
         self.is_core_module
     }
 
+    pub fn find_imports(&self) -> Vec<&ImportDefinition> {
+        let mut imports = Vec::new();
+        for item in &self.ast {
+            match item {
+                &ItemKind::Import(ref i) => imports.push(i),
+                _ => (),
+            }
+        }
+        imports
+    }
+
+    pub fn find_imports_mut(&mut self) -> Vec<&mut ImportDefinition> {
+        let mut imports = Vec::new();
+        for item in &mut self.ast {
+            match item {
+                &mut ItemKind::Import(ref mut i) => imports.push(i),
+                _ => (),
+            }
+        }
+        imports
+    }
+
     pub fn find_exports(&self) -> Vec<&ExportDefinition> {
         let mut exports = Vec::new();
         for item in &self.ast {

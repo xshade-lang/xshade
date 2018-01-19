@@ -21,13 +21,13 @@ pub trait Pass<T> {
     fn execute(&mut self, items: &mut T) -> PassResult;
 }
 
-pub struct PassSystem<T> {
+pub struct PassCollection<T> {
     passes: Vec<Box<Pass<T>>>,
 }
 
-impl<T> PassSystem<T> {
-    pub fn new() -> PassSystem<T> {
-        PassSystem {
+impl<T> PassCollection<T> {
+    pub fn new() -> PassCollection<T> {
+        PassCollection {
             passes: Vec::new(),
         }
     }
@@ -36,17 +36,11 @@ impl<T> PassSystem<T> {
         self.passes.push(pass);
     }
 
-    pub fn execute(&mut self, items: &mut T) {
+    pub fn execute(&mut self, items: &mut T) -> PassResult {
         for pass in self.passes.iter_mut() {
-            match pass.execute(items) {
-                Ok(()) => (),
-                Err(e) => match e {
-                    PassError::Warnings => (),
-                    PassError::Errors => (),
-                    PassError::Fatal => (),
-                }
-            }
+            pass.execute(items)?;
         }
+        Ok(())
     }
 }
 
@@ -78,7 +72,7 @@ mod tests {
         let pass_one = ExamplePass::new();
         let pass_two = ExamplePass::new();
 
-        let mut pass_system = PassSystem::new();
+        let mut pass_system = PassCollection::new();
 
         pass_system.add_pass(Box::new(pass_one));
         pass_system.add_pass(Box::new(pass_two));

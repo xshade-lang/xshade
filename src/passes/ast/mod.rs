@@ -4,6 +4,7 @@ use ::passes::*;
 pub mod spirv_symbol_table;
 pub mod spirv_type_cache;
 pub mod generate_spirv;
+pub mod type_checking;
 
 /// Visitor pattern over the AST
 /// calls override visit_* functions to process the given items

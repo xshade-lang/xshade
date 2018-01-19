@@ -1,5 +1,6 @@
 use ::std::error::Error;
 use ::std::mem;
+use ::std::collections::HashMap;
 use ::compile_error::{ CompileError, CompileResult, ErrorKind };
 use ::module::Module;
 use ::parser::parse_str;
@@ -70,12 +71,16 @@ impl Compiler {
         };
 
         let ast = parse_str(&source)?;
-        println!("{:#?}", ast);
 
         let mut symbol_table = SymbolTable::new(TypeEnvironment::new());
         parse_core_modules(&mut symbol_table).unwrap();
 
+        let mut modules = HashMap::new();
+        self.load_modules(module_path, &mut modules)?;
+
         let mut module = Module::new(module_path.to_owned(), source, ast, false);
+
+        // TODO insert pass system here
 
         match type_check(&mut symbol_table, &mut module) {
             Ok(_) => Ok(Compilation::new(symbol_table, module)),
@@ -85,6 +90,29 @@ impl Compiler {
                 Ok(Compilation::new(symbol_table, module))
             },
         }
+    }
+
+    fn load_modules(&mut self, module_path: &str, modules: &mut HashMap<String, Module>) -> CompileResult<()> {
+        let source = match self.resolver.resolve(module_path) {
+            Ok(source) => source,
+            Err(_) => return Err(CompileError::unknown()),
+        };
+
+        let ast = parse_str(&source)?;
+        let module = Module::new(module_path.to_owned(), source, ast, false);
+
+        let imports: Vec<String> = module.find_imports().iter().map(|&i| i.module_id.to_owned()).collect();
+        modules.insert(module_path.to_owned(), module);
+
+        for import in imports {
+            if modules.contains_key(&import) {
+                continue;
+            }
+
+            self.load_modules(&import, modules)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -125,7 +153,19 @@ mod tests {
         let resolver = Box::new(TestResolver::new(map));
         let mut compiler = Compiler::new(resolver);
 
+        // TODO assert that two modules were loaded
         assert!(compiler.compile_module("test").is_ok());
+    }
+
+    #[test]
+    fn test_compile_multiple_modules() {
+        let mut map = HashMap::new();
+        map.insert("a".to_string(), "import Test from 'b';".to_string());
+        map.insert("b".to_string(), "struct Test {}".to_string());
+        let resolver = Box::new(TestResolver::new(map));
+        let mut compiler = Compiler::new(resolver);
+
+        assert!(compiler.compile_module("a").is_ok());
     }
 
 }
