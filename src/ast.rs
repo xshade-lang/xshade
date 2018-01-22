@@ -3,6 +3,9 @@ use ::std::str;
 use ::nom_locate::LocatedSpan;
 use ::type_system::type_environment::TypeReference;
 
+// TODO refactor all Vec<ItemKind> to Ast
+pub type Ast = Vec<ItemKind>;
+
 type NomSpan<'a> = LocatedSpan<&'a str>;
 
 pub trait Spanned {
@@ -276,6 +279,7 @@ pub struct IndexAccesorExpression {
 
 impl_spanned!(IndexAccesorExpression);
 
+// TODO rename to Expression, make new struct ExpressionStatement like other BlockStatements
 #[derive(Debug, Eq, PartialEq)]
 pub enum ExpressionStatement {
     Infix(InfixExpression),
@@ -301,6 +305,7 @@ impl Spanned for ExpressionStatement {
     }
 }
 
+// TODO rename to LocalStatement
 #[derive(Debug, Eq, PartialEq)]
 pub struct LocalDeclaration {
     pub span: Span,
@@ -311,6 +316,7 @@ pub struct LocalDeclaration {
 
 impl_spanned!(LocalDeclaration);
 
+// TODO rename to ReturnStatement
 #[derive(Debug, Eq, PartialEq)]
 pub struct ReturnDeclaration {
     pub span: Span,

@@ -1,8 +1,13 @@
 use ::std::collections::HashMap;
+use ::std::rc::Rc;
+use ::std::cell::{ RefCell, Ref, RefMut };
 use ::ast::Span;
 use ::type_system::error::{ TypeError, ErrorKind, TypeCheckResult };
 use ::type_system::type_definition::TypeDefinition;
 use ::type_system::type_environment::{ TypeEnvironment, TypeReference };
+use ::data_structures::shared::Shared;
+
+pub type SymbolTableReference = Shared<SymbolTable>;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum SymbolState {
@@ -114,6 +119,10 @@ impl SymbolTable {
 
     pub fn find_type(&self, type_ref: TypeReference) -> Option<&TypeDefinition> {
         self.types.find_type(type_ref)
+    }
+
+    pub fn find_type_by_name(&self, type_name: &str) -> Option<&TypeDefinition> {
+        self.types.find_type_by_name(type_name)
     }
 
     pub fn find_type_or_err(&self, type_ref: TypeReference) -> TypeCheckResult<&TypeDefinition> {

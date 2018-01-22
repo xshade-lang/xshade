@@ -1,3 +1,5 @@
+primitive type bool;
+
 primitive type f32;
 operator + (lhs: f32, rhs: f32) -> f32;
 operator - (lhs: f32, rhs: f32) -> f32;

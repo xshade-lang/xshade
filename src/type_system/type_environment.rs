@@ -3,7 +3,7 @@ use ::ast::Span;
 use ::type_system::error::{ TypeError, ErrorKind, TypeCheckResult };
 use ::type_system::type_definition::TypeDefinition;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct TypeReference {
     id: usize,
 }

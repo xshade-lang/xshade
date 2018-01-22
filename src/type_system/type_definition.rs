@@ -28,6 +28,10 @@ impl TypeDefinition {
         }
     }
 
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
     pub fn find_member_type(&self, field_name: &str) -> Option<TypeReference> {
         if let Some(ref member) = self.member {
             member.find_member_type(field_name)

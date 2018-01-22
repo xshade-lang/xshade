@@ -3,8 +3,12 @@ extern crate nom;
 #[macro_use]
 extern crate nom_locate;
 
+extern crate rspirv;
+extern crate spirv_headers as spirv;
+
 mod data_structures;
 mod type_system;
+mod passes;
 
 mod api;
 mod compiler;
@@ -13,6 +17,9 @@ mod compile_error;
 mod ast;
 mod parser;
 mod string_builder;
+
+#[cfg(test)]
+mod testing;
 
 pub use ::ast::*;
 pub use api::parse_module;

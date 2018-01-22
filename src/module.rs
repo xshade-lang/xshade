@@ -22,6 +22,10 @@ impl Module {
         }
     }
 
+    pub fn get_ast_mut(&mut self) -> &mut Vec<ItemKind> {
+        &mut self.ast
+    }
+
     pub fn get_path(&self) -> &str {
         &self.path
     }
@@ -47,6 +51,28 @@ impl Module {
 
     pub fn is_core(&self) -> bool {
         self.is_core_module
+    }
+
+    pub fn find_imports(&self) -> Vec<&ImportDefinition> {
+        let mut imports = Vec::new();
+        for item in &self.ast {
+            match item {
+                &ItemKind::Import(ref i) => imports.push(i),
+                _ => (),
+            }
+        }
+        imports
+    }
+
+    pub fn find_imports_mut(&mut self) -> Vec<&mut ImportDefinition> {
+        let mut imports = Vec::new();
+        for item in &mut self.ast {
+            match item {
+                &mut ItemKind::Import(ref mut i) => imports.push(i),
+                _ => (),
+            }
+        }
+        imports
     }
 
     pub fn find_exports(&self) -> Vec<&ExportDefinition> {
