@@ -6,6 +6,7 @@ use ::type_system::symbol_table::SymbolTableReference;
 mod check_primitives_pass;
 mod discover_structs_pass;
 mod check_struct_member_pass;
+mod check_expression_pass;
 
 pub struct TypeChecker {
     passes: PassCollection<Ast>,
