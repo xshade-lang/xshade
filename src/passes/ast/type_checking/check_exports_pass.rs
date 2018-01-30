@@ -1,0 +1,142 @@
+use ::ast::*;
+use ::passes::*;
+use ::passes::ast::*;
+use ::passes::results::PassResultReference;
+use ::type_system::symbol_table::{ SymbolTableReference };
+use ::type_system::type_environment::TypeReference;
+use ::type_system::error::{ TypeError, ErrorKind, TypeCheckResult };
+
+ast_pass!(CheckExportsPass, {
+    fn visit_export(&mut self, export_definition: &mut ExportDefinition) {
+        pass_warning!(self, "'export' is experimental syntax and might get changed or removed in the future.");
+
+        for i in &export_definition.items {
+            let type_name = match i {
+                &ImportItem::Named(ref identifier) => &*identifier.name,
+                _ => continue,
+            };
+            match symbol_table_mut!(self).find_type_ref(type_name) {
+                Some(t) => {
+                    match symbol_table_mut!(self).find_type_mut(t) {
+                        Some(t) => {
+                            if !(t.is_struct() || t.is_callable()) { 
+                                pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::InvalidExport(type_name.to_owned()))))
+                            } else {
+                                continue;
+                            }
+                        },
+                        None => pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned()))))
+                    };
+                },
+                None => pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned()))))
+            };
+
+            // let type_def = match symbol_table_mut!(self).find_type_mut(type_ref) {
+            //     Some(t) => t,
+            //     None    => pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned()))))
+            // };
+
+            // let mut isStruct:   bool = false;
+            // let mut isFunction: bool = false;
+
+            // {
+            //     isStruct = match type_def.get_member() {
+            //         Some(_) => true,
+            //         None    => false,
+            //     };
+            // }
+            
+            // {
+            //     isFunction = type_def.is_callable();
+            // }
+
+            // if !(isFunction || isStruct) { 
+            //     pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::InvalidExport(type_name.to_owned()))));
+            // }
+        }
+    }
+});
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ::testing::compile_ast;
+    use ::passes::results::PassResult;
+    use ::type_system::symbol_table::SymbolTable;
+    use ::type_system::type_environment::TypeEnvironment;
+    use ::passes::ast::type_checking::check_primitives_pass;
+    use ::passes::ast::type_checking::discover_structs_pass;
+    use ::passes::ast::type_checking::check_struct_member_pass;
+
+    #[test]
+    fn check_all_exports() {
+        let mut ast = compile_ast("struct Test { position: vec4, } export *;");
+        let symbol_table = SymbolTableReference::new(SymbolTable::new(TypeEnvironment::new()));
+        let result = PassResultReference::new(PassResult::new());
+        
+        let mut passes = PassCollection::from_passes(vec![
+            Box::new(check_primitives_pass::CheckPrimitivesPass::new(symbol_table.clone(), result.clone())),
+            Box::new(discover_structs_pass::DiscoverStructsPass::new(symbol_table.clone(), result.clone())),
+            Box::new(check_struct_member_pass::CheckStructMemberPass::new(symbol_table.clone(), result.clone())),
+            Box::new(CheckExportsPass::new(symbol_table.clone(), result.clone())),
+        ]);
+
+        passes.execute(&mut ast);
+
+        assert!(!result.borrow().has_errors());
+    }
+
+    #[test]
+    fn check_single_export_struct() {
+        let mut ast = compile_ast("struct Test { position: vec4, } export Test;");
+        let symbol_table = SymbolTableReference::new(SymbolTable::new(TypeEnvironment::new()));
+        let result = PassResultReference::new(PassResult::new());
+
+        let mut passes = PassCollection::from_passes(vec![
+            Box::new(check_primitives_pass::CheckPrimitivesPass::new(symbol_table.clone(), result.clone())),
+            Box::new(discover_structs_pass::DiscoverStructsPass::new(symbol_table.clone(), result.clone())),
+            Box::new(check_struct_member_pass::CheckStructMemberPass::new(symbol_table.clone(), result.clone())),
+            Box::new(CheckExportsPass::new(symbol_table.clone(), result.clone())),
+        ]);
+
+        passes.execute(&mut ast);
+
+        assert!(!result.borrow().has_errors());
+    }
+
+    #[test]
+    fn check_single_export_fn() {
+        let mut ast = compile_ast("fn TestFn() -> i32 {  return 0; } export TestFn;");
+        let symbol_table = SymbolTableReference::new(SymbolTable::new(TypeEnvironment::new()));
+        let result = PassResultReference::new(PassResult::new());
+
+        let mut passes = PassCollection::from_passes(vec![
+            Box::new(check_primitives_pass::CheckPrimitivesPass::new(symbol_table.clone(), result.clone())),
+            Box::new(discover_structs_pass::DiscoverStructsPass::new(symbol_table.clone(), result.clone())),
+            Box::new(check_struct_member_pass::CheckStructMemberPass::new(symbol_table.clone(), result.clone())),
+            Box::new(CheckExportsPass::new(symbol_table.clone(), result.clone())),
+        ]);
+
+        passes.execute(&mut ast);
+
+        assert!(!result.borrow().has_errors());
+    }
+
+    #[test]
+    fn check_multiple_export_item() {
+        let mut ast = compile_ast("struct Test { position: vec4, } fn TestFn() -> i32 { return 0; } export { Test, TestFn };");
+        let symbol_table = SymbolTableReference::new(SymbolTable::new(TypeEnvironment::new()));
+        let result = PassResultReference::new(PassResult::new());
+        
+        let mut passes = PassCollection::from_passes(vec![
+            Box::new(check_primitives_pass::CheckPrimitivesPass::new(symbol_table.clone(), result.clone())),
+            Box::new(discover_structs_pass::DiscoverStructsPass::new(symbol_table.clone(), result.clone())),
+            Box::new(check_struct_member_pass::CheckStructMemberPass::new(symbol_table.clone(), result.clone())),
+            Box::new(CheckExportsPass::new(symbol_table.clone(), result.clone())),
+        ]);
+
+        passes.execute(&mut ast);
+
+        assert!(!result.borrow().has_errors());
+    }
+}
