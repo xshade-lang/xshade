@@ -171,14 +171,12 @@ named!(parse_stage<NomSpan, ProgramStageDefinition>,
         ws!(tag!(")")) >>
         ws!(tag!("->")) >>
         return_type_name: parse_type_declaration >>
-        ws!(tag!("{")) >>
         block: parse_block_declaration >>
-        to: ws!(tag!("}")) >>        
          (ProgramStageDefinition {
-            span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
+            span: Span::from_to(Span::from_nom_span(&from), block.span),
             stage_name: Identifier::from_nom_span(stage_name),
             function: FunctionDeclaration {
-                span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
+                span: Span::from_to(Span::from_nom_span(&from), block.span),
                 function_name: Identifier::from_nom_span(stage_name),
                 arguments: arguments,
                 block: block,
@@ -468,9 +466,11 @@ named!(parse_block_statements<NomSpan, Vec<BlockStatement>>,
 
 named!(parse_block_declaration<NomSpan, BlockDeclaration>,
     do_parse!(
+        from: ws!(tag!("{")) >>
         statements: parse_block_statements >>
+        to: ws!(tag!("}")) >>
         (BlockDeclaration{
-            span: Span::new(0, 0, 1, 1), // TODO complicated with empty blocks
+            span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
             statements: statements,
         })
     )
@@ -486,11 +486,9 @@ named!(parse_function<NomSpan, ItemKind>,
         ws!(tag!(")")) >>
         ws!(tag!("->")) >>
         return_type_name: parse_type_declaration >>
-        ws!(tag!("{")) >>
         block: parse_block_declaration >>
-        to: ws!(tag!("}")) >>
         (ItemKind::Function(FunctionDeclaration{
-            span: Span::from_to(Span::from_nom_span(&from), Span::from_nom_span(&to)),
+            span: Span::from_to(Span::from_nom_span(&from), block.span),
             function_name: function_name,
             arguments: arguments,
             block: block,
@@ -610,7 +608,7 @@ pub fn parse_block(program: &str) -> CompileResult<Vec<BlockStatement>> {
     match parse_block_statements(input) {
         IResult::Done(remaining, result) => {
             if remaining.fragment.len() > 0 {
-                return Err(CompileError::new(CompileErrorKind::ParseError, Span::new(0, 0, 1, 1)));
+                return Err(CompileError::new(CompileErrorKind::ParseError, Span::from_nom_span(&remaining)));
             }
             Ok(result)
         },
@@ -623,7 +621,7 @@ pub fn parse_str(program: &str) -> CompileResult<Vec<ItemKind>> {
     match parse(input) {
         IResult::Done(remaining, result) => {
             if remaining.fragment.len() > 0 {
-                return Err(CompileError::new(CompileErrorKind::ParseError, Span::new(0, 0, 1, 1)));
+                return Err(CompileError::new(CompileErrorKind::ParseError, Span::from_nom_span(&remaining)));
             }
             Ok(result)
         },
@@ -678,7 +676,6 @@ program VertexColored {
         return in.color;
     }
 }";
-
         assert_eq!(parse_str(code), Ok(
             vec![
                 ItemKind::Struct(
@@ -743,7 +740,7 @@ program VertexColored {
                                         }
                                     ],
                                     block: BlockDeclaration {
-                                        span: Span::new(0, 0, 1, 1),
+                                        span: Span::new(197, 115, 12, 51),
                                         statements: vec![
                                             BlockStatement::Return(
                                                 ReturnDeclaration {
@@ -809,7 +806,7 @@ program VertexColored {
                                         }
                                     ],
                                     block: BlockDeclaration {
-                                        span: Span::new(0, 0, 1, 1),
+                                        span: Span::new(359, 32, 19, 46),
                                         statements: vec![
                                             BlockStatement::Return(
                                                 ReturnDeclaration {
@@ -883,7 +880,7 @@ program VertexColored {
                         function_name: Identifier::new("main", Span::new(3, 4, 1, 4)),
                         arguments: vec![],
                         block: BlockDeclaration {
-                            span: Span::empty(),
+                            span: Span::new(17, 15, 1, 18),
                             statements: vec![
                                 BlockStatement::Return(
                                     ReturnDeclaration {
@@ -974,5 +971,18 @@ program VertexColored {
                 )
             ]
         ));
+    }
+
+    #[test]
+    fn test_parse_incomplete_function_gives_correct_error() {
+        let code = "
+struct Test {
+    a: f32,
+}
+
+fn main {
+";
+
+        assert_eq!(parse_str(code), Err(CompileError::new(CompileErrorKind::ParseError, Span::new(30, 10, 6, 1))));
     }
 }
