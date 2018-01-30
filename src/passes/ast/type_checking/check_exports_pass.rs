@@ -108,8 +108,30 @@ mod tests {
         assert!(!result.borrow().has_errors());
     }
 
+    
     #[test]
     fn check_multiple_export_item() {
+        let mut ast = compile_ast("struct Test { position: vec4, } struct Another { position: vec4, size: i32, } export { Test, Another };");
+        let mut symbol_table = SymbolTable::new(TypeEnvironment::new());
+        symbol_table.create_global_type("vec4").unwrap();
+        symbol_table.create_global_type("i32").unwrap();
+        let symbol_table = SymbolTableReference::new(symbol_table);
+        let result = PassResultReference::new(PassResult::new());
+        
+        let mut passes = PassCollection::from_passes(vec![
+            Box::new(check_primitives_pass::CheckPrimitivesPass::new(symbol_table.clone(), result.clone())),
+            Box::new(discover_structs_pass::DiscoverStructsPass::new(symbol_table.clone(), result.clone())),
+            Box::new(check_struct_member_pass::CheckStructMemberPass::new(symbol_table.clone(), result.clone())),
+            Box::new(CheckExportsPass::new(symbol_table.clone(), result.clone())),
+        ]);
+
+        passes.execute(&mut ast);
+
+        assert!(!result.borrow().has_errors());
+    }
+
+    #[test]
+    fn check_multiple_export_item_with_fn() {
         let mut ast = compile_ast("struct Test { position: vec4, } fn TestFn() -> i32 { return 0; } export { Test, TestFn };");
         let mut symbol_table = SymbolTable::new(TypeEnvironment::new());
         symbol_table.create_global_type("vec4").unwrap();
