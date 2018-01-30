@@ -22,15 +22,15 @@ ast_pass!(CheckExportsPass, {
                     match symbol_table_ref.find_type_mut(t) {
                         Some(t) => {
                             if !(t.is_struct() || t.is_callable()) { 
-                                panic!("Invalid export: {:#?}", t); // pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::InvalidExport(type_name.to_owned()))))
+                                pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::InvalidExport(type_name.to_owned()))))
                             } else {
                                 continue;
                             }
                         },
-                        None => panic!("Type not found:{:#?}", t), // pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned()))))
+                        None => pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned()))))
                     };
                 },
-                None => panic!("Typeref not found: {:#?}", type_name.to_owned()) // pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned()))))
+                None => pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned()))))
             };
             
         }
