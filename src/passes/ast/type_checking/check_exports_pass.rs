@@ -15,44 +15,24 @@ ast_pass!(CheckExportsPass, {
                 &ImportItem::Named(ref identifier) => &*identifier.name,
                 _ => continue,
             };
-            match symbol_table_mut!(self).find_type_ref(type_name) {
+
+            let mut symbol_table_ref = symbol_table_mut!(self); 
+            match symbol_table_ref.find_type_ref(type_name) {
                 Some(t) => {
-                    match symbol_table_mut!(self).find_type_mut(t) {
+                    match symbol_table_ref.find_type_mut(t) {
                         Some(t) => {
                             if !(t.is_struct() || t.is_callable()) { 
-                                pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::InvalidExport(type_name.to_owned()))))
+                                panic!("Invalid export: {:#?}", t); // pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::InvalidExport(type_name.to_owned()))))
                             } else {
                                 continue;
                             }
                         },
-                        None => pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned()))))
+                        None => panic!("Type not found:{:#?}", t), // pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned()))))
                     };
                 },
-                None => pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned()))))
+                None => panic!("Typeref not found: {:#?}", type_name.to_owned()) // pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned()))))
             };
-
-            // let type_def = match symbol_table_mut!(self).find_type_mut(type_ref) {
-            //     Some(t) => t,
-            //     None    => pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned()))))
-            // };
-
-            // let mut isStruct:   bool = false;
-            // let mut isFunction: bool = false;
-
-            // {
-            //     isStruct = match type_def.get_member() {
-            //         Some(_) => true,
-            //         None    => false,
-            //     };
-            // }
             
-            // {
-            //     isFunction = type_def.is_callable();
-            // }
-
-            // if !(isFunction || isStruct) { 
-            //     pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::InvalidExport(type_name.to_owned()))));
-            // }
         }
     }
 });
@@ -71,7 +51,9 @@ mod tests {
     #[test]
     fn check_all_exports() {
         let mut ast = compile_ast("struct Test { position: vec4, } export *;");
-        let symbol_table = SymbolTableReference::new(SymbolTable::new(TypeEnvironment::new()));
+        let mut symbol_table = SymbolTable::new(TypeEnvironment::new());
+        symbol_table.create_global_type("vec4").unwrap();
+        let symbol_table = SymbolTableReference::new(symbol_table);
         let result = PassResultReference::new(PassResult::new());
         
         let mut passes = PassCollection::from_passes(vec![
@@ -89,7 +71,9 @@ mod tests {
     #[test]
     fn check_single_export_struct() {
         let mut ast = compile_ast("struct Test { position: vec4, } export Test;");
-        let symbol_table = SymbolTableReference::new(SymbolTable::new(TypeEnvironment::new()));
+        let mut symbol_table = SymbolTable::new(TypeEnvironment::new());
+        symbol_table.create_global_type("vec4").unwrap();
+        let symbol_table = SymbolTableReference::new(symbol_table);
         let result = PassResultReference::new(PassResult::new());
 
         let mut passes = PassCollection::from_passes(vec![
@@ -107,7 +91,9 @@ mod tests {
     #[test]
     fn check_single_export_fn() {
         let mut ast = compile_ast("fn TestFn() -> i32 {  return 0; } export TestFn;");
-        let symbol_table = SymbolTableReference::new(SymbolTable::new(TypeEnvironment::new()));
+        let mut symbol_table = SymbolTable::new(TypeEnvironment::new());
+        symbol_table.create_global_type("i32").unwrap();
+        let symbol_table = SymbolTableReference::new(symbol_table);
         let result = PassResultReference::new(PassResult::new());
 
         let mut passes = PassCollection::from_passes(vec![
@@ -125,7 +111,10 @@ mod tests {
     #[test]
     fn check_multiple_export_item() {
         let mut ast = compile_ast("struct Test { position: vec4, } fn TestFn() -> i32 { return 0; } export { Test, TestFn };");
-        let symbol_table = SymbolTableReference::new(SymbolTable::new(TypeEnvironment::new()));
+        let mut symbol_table = SymbolTable::new(TypeEnvironment::new());
+        symbol_table.create_global_type("vec4").unwrap();
+        symbol_table.create_global_type("i32").unwrap();
+        let symbol_table = SymbolTableReference::new(symbol_table);
         let result = PassResultReference::new(PassResult::new());
         
         let mut passes = PassCollection::from_passes(vec![
