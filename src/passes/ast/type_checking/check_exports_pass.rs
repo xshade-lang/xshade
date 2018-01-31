@@ -10,27 +10,28 @@ ast_pass!(CheckExportsPass, {
     fn visit_export(&mut self, export_definition: &mut ExportDefinition) {
         pass_warning!(self, "'export' is experimental syntax and might get changed or removed in the future.");
 
+        let mut symbol_table_ref = symbol_table_mut!(self); 
+
         for i in &export_definition.items {
             let type_name = match i {
                 &ImportItem::Named(ref identifier) => &*identifier.name,
                 _ => continue,
             };
 
-            let mut symbol_table_ref = symbol_table_mut!(self); 
-            match symbol_table_ref.find_type_ref(type_name) {
+            let type_ref = match symbol_table_ref.find_type_ref(type_name) {
+                Some(t) => t,
+                None => pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned())))),
+            };
+            
+            match symbol_table_ref.find_type_mut(type_ref) {
                 Some(t) => {
-                    match symbol_table_ref.find_type_mut(t) {
-                        Some(t) => {
-                            if !(t.is_struct() || t.is_callable()) { 
-                                pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::InvalidExport(type_name.to_owned()))))
-                            } else {
-                                continue;
-                            }
-                        },
-                        None => pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned()))))
-                    };
+                    if !(t.is_struct() || t.is_callable()) { 
+                        pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::InvalidExport(type_name.to_owned()))))
+                    } else {
+                        continue;
+                    }
                 },
-                None => pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned()))))
+                None => pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned())))),
             };
             
         }
@@ -107,7 +108,6 @@ mod tests {
 
         assert!(!result.borrow().has_errors());
     }
-
     
     #[test]
     fn check_multiple_export_item() {
