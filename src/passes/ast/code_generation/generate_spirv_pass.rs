@@ -99,7 +99,7 @@ impl AstWalker for GenerateSpirvPass {
             return_type,
             None,
             (spirv::FunctionControl::DONT_INLINE | spirv::FunctionControl::CONST),
-            function_type);
+            function_type).unwrap();
         
         self.walk_function(function_definition);
         self.builder.end_function().unwrap();
@@ -175,7 +175,7 @@ mod tests {
 
         compilation.run_ast_pass(&mut pass);
         
-        let mut code = pass.assemble();
+        let code = pass.assemble();
         let mut loader = mr::Loader::new();
         rspirv::binary::parse_words(&code, &mut loader).unwrap();
         let module = loader.module();
@@ -210,7 +210,7 @@ mod tests {
 
         compilation.run_ast_pass(&mut pass);
         
-        let mut code = pass.assemble();
+        let code = pass.assemble();
         let mut loader = mr::Loader::new();
         rspirv::binary::parse_words(&code, &mut loader).unwrap();
         let module = loader.module();

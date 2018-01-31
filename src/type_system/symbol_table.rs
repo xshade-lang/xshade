@@ -274,6 +274,6 @@ mod tests {
     fn add_type() {
         let reference = TypeReference::new(0);
         let mut symbols = SymbolTable::new(TypeEnvironment::new());
-        symbols.add_type("f32", reference);
+        symbols.add_type("f32", reference).unwrap();
     }
 }
