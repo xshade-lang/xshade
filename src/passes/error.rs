@@ -1,28 +1,37 @@
 use ::std::error::Error;
 use ::std::fmt;
 use ::ast::Span;
+use ::code_map::CodeMap;
 
-#[derive(Debug)]
-pub struct PassError {
-    span: Span,
+#[derive(Debug, Copy, Clone)]
+pub enum Severity {
+    Warning,
+    Error,
+    Fatal,
 }
 
-impl PassError {
-    pub fn new(span: Span) -> PassError {
-        PassError {
-            span: span,
+pub trait PassError {
+    fn format(&self, code_map: &CodeMap) -> String;
+    fn get_severity(&self) -> Severity;
+
+    fn is_warning(&self) -> bool {
+        match self.get_severity() {
+            Severity::Warning => true,
+            _ => false,
         }
     }
-}
 
-impl Error for PassError {
-    fn description(&self) -> &str {
-        "An error occured during a pass"
+    fn is_error(&self) -> bool {
+        match self.get_severity() {
+            Severity::Error => true,
+            _ => false,
+        }
     }
-}
 
-impl fmt::Display for PassError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-       write!(f, "An error occured during a pass")
+    fn is_fatal(&self) -> bool {
+        match self.get_severity() {
+            Severity::Fatal => true,
+            _ => false,
+        }
     }
 }

@@ -13,10 +13,12 @@ mod passes;
 mod api;
 mod compiler;
 mod module;
+mod code_map;
 mod compile_error;
 mod ast;
 mod parser;
 mod string_builder;
+mod error_formatter;
 
 #[cfg(test)]
 mod testing;

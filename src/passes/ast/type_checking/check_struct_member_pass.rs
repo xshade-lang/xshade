@@ -1,6 +1,7 @@
 use ::ast::*;
 use ::passes::*;
 use ::passes::ast::*;
+use ::passes::ast::type_checking::error::type_not_found::TypeNotFoundError;
 use ::passes::results::PassResultReference;
 use ::type_system::symbol_table::{ SymbolTableReference };
 use ::type_system::type_environment::TypeReference;
@@ -37,7 +38,12 @@ ast_pass_impl!(CheckStructMemberPass, {
 
     fn visit_struct_member(&mut self, struct_member_definition: &mut StructMemberDefinition) {
         let mut list = self.member_list.take().unwrap();
-        let struct_member_type = pass_try!(self, symbol_table!(self).find_type_ref_or_err(&struct_member_definition.struct_member_type_name.name));
+
+        let struct_member_type = pass_try!(self, match symbol_table!(self).find_type_ref(&struct_member_definition.struct_member_type_name.name) {
+            Some(t) => Ok(t),
+            None => Err(TypeNotFoundError::new(struct_member_definition.span, struct_member_definition.struct_member_type_name.name.to_string())),
+        });
+
         struct_member_definition.struct_member_type = Some(struct_member_type);
         list.push(StructureMember::new(struct_member_definition.struct_member_name.name.clone(), struct_member_type));
         self.member_list = Some(list);

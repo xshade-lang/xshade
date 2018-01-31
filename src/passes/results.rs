@@ -6,13 +6,6 @@ use ::data_structures::shared::Shared;
 pub type PassResultReference = Shared<PassResult>;
 
 #[derive(Debug)]
-pub enum PassError {
-    Warning,
-    Error,
-    Fatal,
-}
-
-#[derive(Debug)]
 pub struct PassResult {
     errors: Vec<Box<Error>>,
 }

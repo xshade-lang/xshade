@@ -35,6 +35,12 @@ macro_rules! pass_warning {
     );
 }
 
+macro_rules! pass_err {
+    ($s:expr, $w:expr) => (
+        $s.result.borrow_mut().add_error($w);
+    );
+}
+
 // borrows the symbol table
 // expects `self` to have a `symbol_table` field of type `::type_system::symbol_table::SymbolTableReference`
 // usage: `symbol_table!(self)`

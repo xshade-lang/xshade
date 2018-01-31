@@ -3,6 +3,7 @@ use ::passes::{ Pass, PassCollection };
 use ::passes::results::PassResultReference;
 use ::type_system::symbol_table::SymbolTableReference;
 
+mod error;
 mod check_primitives_pass;
 mod discover_structs_pass;
 mod check_struct_member_pass;
