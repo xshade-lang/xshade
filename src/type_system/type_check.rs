@@ -387,21 +387,21 @@ fn check_exports(symbol_table: &mut SymbolTable, exports: &mut Vec<&mut ExportDe
                 None    => return Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned())))
             };
 
-            let mut isStruct: bool   = false;
-            let mut isFunction: bool = false;
+            let mut is_struct: bool   = false;
+            let mut is_function: bool = false;
 
             {
-                isStruct = match type_def.get_member() {
+                is_struct = match type_def.get_member() {
                     Some(_) => true,
                     None    => false,
                 };
             }
             
             {
-                isFunction = type_def.is_callable();
+                is_function = type_def.is_callable();
             }
 
-            if !(isFunction || isStruct) { 
+            if !(is_function || is_struct) { 
                 try!(Err(TypeError::new(Span::empty(), ErrorKind::InvalidExport(type_name.to_owned()))));
             }
         }
