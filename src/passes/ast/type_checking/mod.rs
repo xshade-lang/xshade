@@ -6,6 +6,7 @@ use ::type_system::symbol_table::SymbolTableReference;
 mod check_primitives_pass;
 mod discover_structs_pass;
 mod check_struct_member_pass;
+mod check_exports_pass;
 mod check_function_signatures_pass;
 
 pub struct TypeChecker {
@@ -19,7 +20,8 @@ impl TypeChecker {
                 Box::new(check_primitives_pass::CheckPrimitivesPass::new(symbol_table.clone(), result.clone())),
                 Box::new(discover_structs_pass::DiscoverStructsPass::new(symbol_table.clone(), result.clone())),
                 Box::new(check_struct_member_pass::CheckStructMemberPass::new(symbol_table.clone(), result.clone())),
-                Box::new(check_function_signatures_pass::CheckFunctionSignaturePass::new(symbol_table.clone(), result.clone())),
+				Box::new(check_exports_pass::CheckExportsPass::new(symbol_table.clone(), result.clone())),
+				Box::new(check_function_signatures_pass::CheckFunctionSignaturePass::new(symbol_table.clone(), result.clone())),
             ]),
         }
     }

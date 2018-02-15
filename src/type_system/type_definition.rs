@@ -64,6 +64,13 @@ impl TypeDefinition {
         Ok(())
     }
 
+    pub fn is_struct(&self) -> bool {
+        match self.get_member() {
+            Some(_) => true,
+            None    => false
+        }
+    }
+
     pub fn make_callable(&mut self, signature: CallSignature) -> TypeCheckResult<()> {
         if self.is_callable() {
             return Err(TypeError::new(Span::empty(), ErrorKind::CannotMakeCallable));
