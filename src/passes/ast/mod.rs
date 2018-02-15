@@ -18,6 +18,7 @@ pub trait AstWalker {
     fn visit(&mut self, items: &mut Ast) {
         for item in items.iter_mut() {
             match *item {
+                ItemKind::Export(ref mut item) => self.visit_export(item),
                 ItemKind::Struct(ref mut item) => self.visit_struct(item),
                 ItemKind::Function(ref mut item) => self.visit_function(item),
                 ItemKind::Primitive(ref mut item) => self.visit_primitive(item),
@@ -167,5 +168,8 @@ pub trait AstWalker {
     }
 
     fn visit_struct_member(&mut self, struct_member_definition: &mut StructMemberDefinition) {
+    }
+
+    fn visit_export(&mut self, export_definition: &mut ExportDefinition) {
     }
 }
