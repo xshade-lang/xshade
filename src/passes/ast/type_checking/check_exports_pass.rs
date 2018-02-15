@@ -22,7 +22,6 @@ ast_pass!(CheckExportsPass, {
                 Some(t) => t,
                 None => pass_try!(self, Err(TypeError::new(Span::empty(), ErrorKind::TypeNotFound(type_name.to_owned())))),
             };
-            
             match symbol_table_ref.find_type_mut(type_ref) {
                 Some(t) => {
                     if !(t.is_struct() || t.is_callable()) { 
@@ -47,6 +46,7 @@ mod tests {
     use ::type_system::type_environment::TypeEnvironment;
     use ::passes::ast::type_checking::check_primitives_pass;
     use ::passes::ast::type_checking::discover_structs_pass;
+    use ::passes::ast::type_checking::check_function_signatures_pass;
     use ::passes::ast::type_checking::check_struct_member_pass;
 
     #[test]
@@ -61,6 +61,7 @@ mod tests {
             Box::new(check_primitives_pass::CheckPrimitivesPass::new(symbol_table.clone(), result.clone())),
             Box::new(discover_structs_pass::DiscoverStructsPass::new(symbol_table.clone(), result.clone())),
             Box::new(check_struct_member_pass::CheckStructMemberPass::new(symbol_table.clone(), result.clone())),
+            Box::new(check_function_signatures_pass::CheckFunctionSignaturePass::new(symbol_table.clone(), result.clone())),
             Box::new(CheckExportsPass::new(symbol_table.clone(), result.clone())),
         ]);
 
@@ -81,6 +82,7 @@ mod tests {
             Box::new(check_primitives_pass::CheckPrimitivesPass::new(symbol_table.clone(), result.clone())),
             Box::new(discover_structs_pass::DiscoverStructsPass::new(symbol_table.clone(), result.clone())),
             Box::new(check_struct_member_pass::CheckStructMemberPass::new(symbol_table.clone(), result.clone())),
+            Box::new(check_function_signatures_pass::CheckFunctionSignaturePass::new(symbol_table.clone(), result.clone())),
             Box::new(CheckExportsPass::new(symbol_table.clone(), result.clone())),
         ]);
 
@@ -101,6 +103,7 @@ mod tests {
             Box::new(check_primitives_pass::CheckPrimitivesPass::new(symbol_table.clone(), result.clone())),
             Box::new(discover_structs_pass::DiscoverStructsPass::new(symbol_table.clone(), result.clone())),
             Box::new(check_struct_member_pass::CheckStructMemberPass::new(symbol_table.clone(), result.clone())),
+            Box::new(check_function_signatures_pass::CheckFunctionSignaturePass::new(symbol_table.clone(), result.clone())),
             Box::new(CheckExportsPass::new(symbol_table.clone(), result.clone())),
         ]);
 
@@ -122,6 +125,7 @@ mod tests {
             Box::new(check_primitives_pass::CheckPrimitivesPass::new(symbol_table.clone(), result.clone())),
             Box::new(discover_structs_pass::DiscoverStructsPass::new(symbol_table.clone(), result.clone())),
             Box::new(check_struct_member_pass::CheckStructMemberPass::new(symbol_table.clone(), result.clone())),
+            Box::new(check_function_signatures_pass::CheckFunctionSignaturePass::new(symbol_table.clone(), result.clone())),
             Box::new(CheckExportsPass::new(symbol_table.clone(), result.clone())),
         ]);
 
@@ -143,6 +147,7 @@ mod tests {
             Box::new(check_primitives_pass::CheckPrimitivesPass::new(symbol_table.clone(), result.clone())),
             Box::new(discover_structs_pass::DiscoverStructsPass::new(symbol_table.clone(), result.clone())),
             Box::new(check_struct_member_pass::CheckStructMemberPass::new(symbol_table.clone(), result.clone())),
+            Box::new(check_function_signatures_pass::CheckFunctionSignaturePass::new(symbol_table.clone(), result.clone())),
             Box::new(CheckExportsPass::new(symbol_table.clone(), result.clone())),
         ]);
 
