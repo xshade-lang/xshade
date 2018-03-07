@@ -8,7 +8,6 @@ extern crate spirv_headers as spirv;
 
 mod data_structures;
 mod type_system;
-mod types;
 mod passes;
 
 mod api;
