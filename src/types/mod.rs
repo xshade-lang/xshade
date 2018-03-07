@@ -1,17 +1,20 @@
+pub mod builder;
+pub mod error;
+
 pub mod function_type;
 pub mod value_type;
 pub mod structure_type;
+pub mod type_constructor;
 pub mod type_environment;
-pub mod type_reference;
 
-pub struct Type;
+pub use self::function_type::FunctionType;
+pub use self::structure_type::StructureType;
+pub use self::value_type::ValueType;
+pub use self::type_environment::TypeEnvironment;
 
-impl Type {
-    pub fn new(name: String) -> Type {
-        Type
-    }
-
-    pub fn is_function_type(&self) -> bool { unimplemented!() }
-    pub fn is_structure_type(&self) -> bool { unimplemented!() }
-    pub fn is_value_type(&self) -> bool { unimplemented!() }
+pub trait Type {
+    fn get_name(&self) -> &str;
+    fn is_function_type(&self) -> bool;
+    fn is_structure_type(&self) -> bool;
+    fn is_value_type(&self) -> bool;
 }
