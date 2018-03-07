@@ -7,7 +7,7 @@ use ::type_system::type_environment::TypeReference;
 
 ast_pass!(CheckPrimitivesPass, {
     fn visit_primitive(&mut self, primitive_declaration: &mut PrimitiveDeclaration) {
-        pass_warning!(self, "'primitive' is experimental syntax and might get changed or removed in the future.");
+        // pass_warning!(self, "'primitive' is experimental syntax and might get changed or removed in the future.");
 
         let type_ref = pass_try!(self, symbol_table_mut!(self).create_global_type(&primitive_declaration.type_name.name));
 

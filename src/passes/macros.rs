@@ -26,15 +26,6 @@ macro_rules! pass_try_fatal {
     });
 }
 
-// produces a warning
-// expects `self` to have a `result` field of type `::passes::results::PassResultReference`
-// usage: `pass_warning!(self, "some warning")`
-macro_rules! pass_warning {
-    ($s:expr, $w:expr) => (
-        $s.result.borrow_mut().add_warning($w);
-    );
-}
-
 macro_rules! pass_err {
     ($s:expr, $w:expr) => (
         $s.result.borrow_mut().add_error($w);

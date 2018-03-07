@@ -5,10 +5,11 @@ use ::passes::results::PassResultReference;
 use ::type_system::symbol_table::{ SymbolTableReference };
 use ::type_system::type_environment::TypeReference;
 use ::type_system::error::{ TypeError, ErrorKind, TypeCheckResult };
+use ::passes::ast::type_checking::error;
 
 ast_pass!(CheckExportsPass, {
     fn visit_export(&mut self, export_definition: &mut ExportDefinition) {
-        pass_warning!(self, "'export' is experimental syntax and might get changed or removed in the future.");
+        pass_err!(self, Box::new(error::ExperimentalSyntaxWarning::new(export_definition.span, "export")));
 
         let mut symbol_table_ref = symbol_table_mut!(self); 
 
