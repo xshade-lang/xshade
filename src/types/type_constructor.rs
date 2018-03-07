@@ -6,28 +6,33 @@ pub enum TypeName {
 pub enum TypeParameterList {
     Any,
     Fixed(Vec<TypeParameter>),
+    None,
 }
 
 pub enum TypeParameter {
     Any,
     Constrained,
     Fixed,
+    None,
 }
 
 pub enum ValueParameterList {
     Any,
     Fixed(Vec<ValueParameter>),
+    None,
 }
 
 pub enum ValueParameter {
     Any,
     Constrained,
     Fixed,
+    None,
 }
 
 pub enum ConstructionResult {
     Constructor(TypeConstructor),
     Type,
+    None,
 }
 
 pub struct TypeConstructor {
