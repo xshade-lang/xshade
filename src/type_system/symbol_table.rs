@@ -2,7 +2,6 @@ use ::std::collections::HashMap;
 use ::std::rc::Rc;
 use ::std::cell::{ RefCell, Ref, RefMut };
 use ::ast::Span;
-use ::type_system::error::{ TypeError, ErrorKind, TypeCheckResult };
 use ::type_system::type_definition::TypeDefinition;
 use ::type_system::type_environment::{ TypeEnvironment, TypeReference };
 use ::data_structures::shared::Shared;
@@ -73,13 +72,13 @@ impl SymbolTable {
         }
     }
 
-    pub fn add_type(&mut self, name: &str, type_reference: TypeReference) -> TypeCheckResult<()> {
+    pub fn add_type(&mut self, name: &str, type_reference: TypeReference) -> Option<()> {
         if self.scopes[0].types.contains_key(name) {
-            return Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::SymbolNameAlreadyUsed(name.to_owned())));
+            return None;
         }
 
         self.scopes[0].types.insert(name.to_string(), type_reference);
-        Ok(())
+        Some(())
     }
 
     pub fn find_type_ref(&self, name: &str) -> Option<TypeReference> {
@@ -95,35 +94,35 @@ impl SymbolTable {
         None
     }
 
-    pub fn find_type_ref_or_err(&self, name: &str) -> TypeCheckResult<TypeReference> {
+    pub fn find_type_ref_or_err(&self, name: &str) -> Option<TypeReference> {
         for scope in &self.scopes {
             if scope.types.contains_key(name) {
                 match scope.types.get(name) {
-                    Some(t) => return Ok(t.clone()),
-                    None => return Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::TypeNotFound(name.to_owned()))),
+                    Some(t) => return Some(t.clone()),
+                    None => return None,
                 }
             }
         }
 
-        Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::TypeNotFound(name.to_owned())))
+        None
     }
 
-    pub fn add_symbol(&mut self, name: &str) -> TypeCheckResult<()> {
+    pub fn add_symbol(&mut self, name: &str) -> Option<()> {
         if self.scopes[0].symbols.contains_key(name) {
-            return Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::SymbolNameAlreadyUsed(name.to_owned())));
+            return None;
         }
 
         self.scopes[0].symbols.insert(name.to_string(), Symbol::new(name, SymbolState::Free));
-        Ok(())
+        Some(())
     }
 
-    pub fn add_symbol_with_type(&mut self, name: &str, symbol_type: TypeReference) -> TypeCheckResult<()> {
+    pub fn add_symbol_with_type(&mut self, name: &str, symbol_type: TypeReference) -> Option<()> {
         if self.scopes[0].symbols.contains_key(name) {
-            return Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::SymbolNameAlreadyUsed(name.to_owned())));
+            return None;
         }
 
         self.scopes[0].symbols.insert(name.to_string(), Symbol::new(name, SymbolState::Typed(symbol_type)));
-        Ok(())
+        Some(())
     }
 
     pub fn find_symbol(&mut self, name: &str) -> Option<&Symbol> {
@@ -146,18 +145,18 @@ impl SymbolTable {
         None
     }
 
-    pub fn resolve_symbol_type(&mut self, name: &str, symbol_type: TypeReference) -> TypeCheckResult<()> {
+    pub fn resolve_symbol_type(&mut self, name: &str, symbol_type: TypeReference) -> Option<()> {
         for scope in &mut self.scopes {
             if scope.symbols.contains_key(name) {
                 match scope.symbols.get_mut(name) {
                     Some(ref mut s) => s.resolve_type(symbol_type),
-                    None => return Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::VariableNotFound(name.to_owned()))),
+                    None => return None,
                 }
-                return Ok(());
+                return Some(());
             }
         }
 
-        Err(TypeError::new(Span::new(0, 0, 1, 1), ErrorKind::VariableNotFound(name.to_owned())))
+        None
     }
 
     pub fn enter_scope(&mut self) {
