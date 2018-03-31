@@ -13,6 +13,10 @@ ast_pass!(CheckPrimitivesPass, {
             Some(t) => Ok(t),
             None => Err(TypeWithSameNameAlreadyDefinedError::new(primitive_declaration.span, primitive_declaration.type_name.name.to_string())),
         });
+
+        // TODO handle result, add test
+        symbol_table_mut!(self).add_type(&primitive_declaration.type_name.name, type_ref);
+
         primitive_declaration.declaring_type = Some(type_ref);
     }
 });
