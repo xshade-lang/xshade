@@ -50,6 +50,24 @@ macro_rules! symbol_table_mut {
     );
 }
 
+// borrows the type environment
+// expects `self` to have a `type_environment` field of type `::type_system::type_environment::TypeEnvironmentReference`
+// usage: `type_environment!(self)`
+macro_rules! type_environment {
+    ($s:expr) => (
+        $s.type_environment.borrow()
+    );
+}
+
+// mutably borrows the type environment
+// expects `self` to have a `type_environment` field of type `::type_system::type_environment::TypeEnvironmentReference`
+// usage: `type_environment_mut!(self)`
+macro_rules! type_environment_mut {
+    ($s:expr) => (
+        $s.type_environment.borrow_mut()
+    );
+}
+
 // borrows the pass result container
 // expects `self` to have a `result` field of type `::passes::results::PassResultReference`
 // usage: `result!(self)`
@@ -73,13 +91,15 @@ macro_rules! ast_pass {
     ($name:ident, $body:tt) => (
         pub struct $name {
             symbol_table: SymbolTableReference,
+            type_environment: TypeEnvironmentReference,
             result: PassResultReference,
         }
 
         impl $name {
-            pub fn new(symbol_table: SymbolTableReference, result: PassResultReference) -> $name {
+            pub fn new(symbol_table: SymbolTableReference, type_environment: TypeEnvironmentReference, result: PassResultReference) -> $name {
                 $name {
                     symbol_table: symbol_table,
+                    type_environment: type_environment,
                     result: result,
                 }
             }

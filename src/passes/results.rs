@@ -8,14 +8,12 @@ pub type PassResultReference = Shared<PassResult>;
 #[derive(Debug)]
 pub struct PassResult {
     errors: Vec<Box<Error>>,
-    warnings: Vec<Box<Error>>,
 }
 
 impl PassResult {
     pub fn new() -> PassResult {
         PassResult {
             errors: Vec::new(),
-            warnings: Vec::new(),
         }
     }
 
