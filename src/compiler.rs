@@ -58,7 +58,7 @@ impl Compiler {
 
         let ast = parse_str(&source)?;
 
-        let mut symbol_table = SymbolTable::new(TypeEnvironment::new());
+        let mut symbol_table = SymbolTable::new();
         parse_core_modules(&mut symbol_table).unwrap();
 
         let mut modules = HashMap::new();
