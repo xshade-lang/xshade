@@ -2,7 +2,6 @@ use ::ast::*;
 use ::passes::*;
 
 pub mod type_checking;
-pub mod code_generation;
 
 impl<T: AstWalker> Pass<Ast> for T {
     fn execute(&mut self, items: &mut Ast) {

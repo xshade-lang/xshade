@@ -5,7 +5,6 @@ use ::compile_error::{ CompileError, CompileResult, ErrorKind };
 use ::module::Module;
 use ::parser::parse_str;
 use ::type_system::symbol_table::SymbolTable;
-use ::type_system::type_check::type_check;
 use ::type_system::type_environment::TypeEnvironment;
 use ::ast::{ ItemKind, Span };
 use ::passes::ast::AstWalker;
@@ -14,7 +13,6 @@ fn parse_core_modules(symbols: &mut SymbolTable) -> Result<Module, Box<Error>> {
     let primitives = include_str!("../libcore/primitives.xs");
     let ast = parse_str(primitives)?;
     let mut module = Module::new("".to_owned(), primitives.to_owned(), ast, true);
-    type_check(symbols, &mut module)?;
     Ok(module)
 }
 
@@ -33,18 +31,6 @@ impl Compilation {
             symbol_table: Some(symbol_table),
             module: module,
         }
-    }
-
-    pub fn get_symbol_table(&mut self) -> SymbolTable {
-        self.symbol_table.take().unwrap()
-    }
-
-    pub fn return_symbol_table(&mut self, symbol_table: SymbolTable) {
-        self.symbol_table = Some(symbol_table);
-    }
-
-    pub fn run_ast_pass(&mut self, pass: &mut AstWalker) {
-        pass.visit(self.module.get_ast_mut());
     }
 
     pub fn get_ast_mut(&mut self) -> &mut Vec<ItemKind> {
@@ -82,14 +68,7 @@ impl Compiler {
 
         // TODO insert pass system here
 
-        match type_check(&mut symbol_table, &mut module) {
-            Ok(_) => Ok(Compilation::new(symbol_table, module)),
-            Err(e) => {
-                let span = e.get_span();
-                module.set_error(CompileError::new(ErrorKind::TypeError(e), span));
-                Ok(Compilation::new(symbol_table, module))
-            },
-        }
+        Ok(Compilation::new(symbol_table, module))
     }
 
     fn load_modules(&mut self, module_path: &str, modules: &mut HashMap<String, Module>) -> CompileResult<()> {
@@ -167,5 +146,4 @@ mod tests {
 
         assert!(compiler.compile_module("a").is_ok());
     }
-
 }

@@ -10,7 +10,6 @@ mod data_structures;
 mod type_system;
 mod passes;
 
-mod api;
 mod compiler;
 mod module;
 mod compile_error;
@@ -22,7 +21,6 @@ mod string_builder;
 mod testing;
 
 pub use ::ast::*;
-pub use api::parse_module;
 
 pub use compile_error::{ CompileError, ErrorKind as CompileErrorKind };
 pub use type_system::error::{ TypeError, ErrorKind as TypeErrorKind };
